@@ -56,7 +56,8 @@ describe('scope', () => {
     const { createClient } = await import('@supabase/supabase-js')
     const anon = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       { auth: { persistSession: false } },
     )
     const { data, error } = await anon.rpc('send_expiry_reminders', {

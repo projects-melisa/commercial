@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { supabasePublicKey, supabaseUrl } from '@/lib/supabase/keys'
 
 /** Routes reachable without a session. Everything else redirects to sign-in. */
 const PUBLIC_PATHS = ['/masuk', '/auth']
@@ -16,8 +17,8 @@ export const updateSession = async (request: NextRequest): Promise<NextResponse>
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl(),
+    supabasePublicKey(),
     {
       cookies: {
         getAll: () => request.cookies.getAll(),

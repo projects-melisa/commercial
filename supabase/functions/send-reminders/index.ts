@@ -92,7 +92,10 @@ Deno.serve(async (request) => {
      * path the token is the service role and no contract id is supplied, so the
      * scope clause is not reached.
      */
-    const caller = createClient(required('SUPABASE_URL'), required('SUPABASE_ANON_KEY'), {
+    // Supabase injects SUPABASE_ANON_KEY into every function; newer projects also
+    // expose a publishable key. Either authenticates as the `anon` role.
+    const publicKey = env('SUPABASE_PUBLISHABLE_KEY') ?? required('SUPABASE_ANON_KEY')
+    const caller = createClient(required('SUPABASE_URL'), publicKey, {
       auth: { persistSession: false },
       global: { headers: { Authorization: request.headers.get('Authorization') ?? '' } },
     })
