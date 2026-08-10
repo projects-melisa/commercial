@@ -19,6 +19,7 @@ import {
   anonClient,
   createLineScopedCommercial,
   OUT_OF_SCOPE_LINE,
+  serviceClient,
   signInAs,
   type Client,
   type ScopedUser,
@@ -185,24 +186,79 @@ describe('who may write', () => {
     expect(Number(after!.tarif)).toBe(Number(contract.tarif))
   })
 
-  it('nobody may write to service cases: CS_Data is read-only reference data', async () => {
+  it('a Commercial user may log a service case and close it', async () => {
     const client = await signInAs(ACCOUNTS.commercial.email)
-    const { data: existing } = await client.from('cases').select('id').limit(1)
 
-    // The generated types expose an insert and update path for every table, because
-    // they describe the schema and know nothing about policies. Refusing these is the
-    // database's job, and that is what is being asserted.
-    const { error } = await client
+    const { data: logged, error } = await client
+      .from('cases')
+      .insert({ customer_id: 'CUST-GH-001', description: 'Uji pencatatan kasus', status: 'OPEN' })
+      .select('id')
+      .single()
+    expect(error).toBeNull()
+
+    const { data: closed } = await client
+      .from('cases')
+      .update({ status: 'CLOSED' })
+      .eq('id', logged!.id)
+      .select('status')
+    expect(closed![0]!.status).toBe('CLOSED')
+
+    // No delete policy: a case that happened happened.
+    const { data: deleted } = await client
+      .from('cases')
+      .delete()
+      .eq('id', logged!.id)
+      .select('id')
+    expect(deleted ?? []).toEqual([])
+
+    await serviceClient().from('cases').delete().eq('id', logged!.id)
+  })
+
+  it('a VP may not write to service cases', async () => {
+    const vp = await signInAs(ACCOUNTS.vp.email)
+    const { data: existing } = await vp.from('cases').select('id').limit(1)
+
+    const { error } = await vp
       .from('cases')
       .insert({ customer_id: 'CUST-GH-001', description: 'x', status: 'OPEN' })
     expect(error).not.toBeNull()
 
-    const { data: updated } = await client
+    const { data: updated } = await vp
       .from('cases')
       .update({ status: 'CLOSED' })
       .eq('id', existing![0]!.id)
       .select('id')
     expect(updated ?? []).toEqual([])
+  })
+
+  it('a Commercial user may create a contract, and a VP may not', async () => {
+    const commercial = await signInAs(ACCOUNTS.commercial.email)
+    const vp = await signInAs(ACCOUNTS.vp.email)
+    const id = 'CUST-GH-901'
+
+    const { error: vpRefused } = await vp
+      .from('customers')
+      .insert({ customer_id: id, nama: 'Uji VP', rfm_status: 'LOW' })
+    expect(vpRefused).not.toBeNull()
+
+    const { error: customerError } = await commercial
+      .from('customers')
+      .insert({ customer_id: id, nama: 'Uji Pembuatan', rfm_status: 'LOW' })
+    expect(customerError).toBeNull()
+
+    const { error: contractError } = await commercial.from('contracts').insert({
+      customer_id: id,
+      business_line: 'Ground Handling',
+      service_type: 'Uji',
+      contract_end_date: '2027-01-01',
+      source_end_date: '2027-01-01',
+      tarif: 1000,
+      cost: 500,
+      min_gpm_target: 0.25,
+    })
+    expect(contractError).toBeNull()
+
+    await serviceClient().from('customers').delete().eq('customer_id', id)
   })
 })
 

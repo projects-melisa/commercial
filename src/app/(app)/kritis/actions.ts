@@ -46,3 +46,13 @@ export const sendReminder = async (contractId: string): Promise<string> => {
 
   return 'Reminder tercatat di pusat notifikasi; pengiriman email belum dikonfigurasi.'
 }
+
+/** Records that this renewal was chased, so the queue stops looking untouched. */
+export const markFollowedUp = async (formData: FormData): Promise<void> => {
+  const supabase = await createClient()
+  await supabase
+    .from('contracts')
+    .update({ followed_up_at: new Date().toISOString() })
+    .eq('id', String(formData.get('contract_id') ?? ''))
+  revalidatePath('/kritis')
+}

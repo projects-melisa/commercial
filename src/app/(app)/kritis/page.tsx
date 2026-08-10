@@ -1,6 +1,7 @@
 import Link from 'next/link'
-import { AlertTriangle, ArrowRight, MessageSquareWarning } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Check, MessageSquareWarning } from 'lucide-react'
 
+import { markFollowedUp } from '@/app/(app)/kritis/actions'
 import { SendReminderButton } from '@/app/(app)/kritis/send-reminder-button'
 import { GpmIndicator, RfmBadge } from '@/components/ui/badges'
 import { EmptyState } from '@/components/ui/states'
@@ -76,6 +77,12 @@ const Band = ({
                   <ArrowRight size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
                   {tindakan}
                 </p>
+                {contract.followedUpAt ? (
+                  <p className="mt-1.5 inline-flex items-center gap-1 rounded bg-white/70 px-2 py-0.5 text-xs font-semibold text-gray-600">
+                    <Check size={12} aria-hidden="true" />
+                    Ditindaklanjuti {formatTanggal(contract.followedUpAt)}
+                  </p>
+                ) : null}
               </div>
 
               <div className="flex shrink-0 flex-col gap-2">
@@ -86,6 +93,16 @@ const Band = ({
                   Simulasikan
                 </Link>
                 <SendReminderButton contractId={contract.id} />
+                {/* A plain form: a server action needs no client component here. */}
+                <form action={markFollowedUp}>
+                  <input type="hidden" name="contract_id" value={contract.id} />
+                  <button
+                    type="submit"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-primary hover:text-primary"
+                  >
+                    {contract.followedUpAt ? 'Tindak lanjut lagi' : 'Tandai ditindaklanjuti'}
+                  </button>
+                </form>
               </div>
             </div>
           </li>

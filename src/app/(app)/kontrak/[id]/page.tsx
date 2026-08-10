@@ -99,7 +99,14 @@ export default async function KontrakDetailPage({
           <Field label="Sisa Waktu">
             <span className="text-lg">{formatSisaHari(contract.daysLeft)}</span>
           </Field>
-          <Field label="Tanggal Berakhir">{formatTanggal(contract.contractEndDate)}</Field>
+          <Field label="Tanggal Berakhir">
+            {formatTanggal(contract.contractEndDate)}
+            {contract.previousEndDate ? (
+              <span className="mt-0.5 block text-xs font-normal text-gray-500">
+                Diperpanjang dari {formatTanggal(contract.previousEndDate)}
+              </span>
+            ) : null}
+          </Field>
           <Field label="Status">{contract.status}</Field>
         </dl>
       </section>

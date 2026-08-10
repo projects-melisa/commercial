@@ -200,6 +200,50 @@ describe('deciding a scenario', () => {
       .eq('contract_id', scenario.contract_id)
       .order('created_at', { ascending: false })
     expect(notifications!.some((n) => n.title.includes('disetujui'))).toBe(true)
+
+    // The approval reaches the contract. Without this the whole simulate → submit →
+    // approve chain ends in a record nothing consumes, and the approved price never
+    // becomes the price.
+    const { data: contract } = await author
+      .from('contracts')
+      .select('tarif, cost')
+      .eq('id', scenario.contract_id)
+      .single()
+    expect(Number(contract!.tarif)).toBe(Number(scenario.proposed_tarif))
+    expect(Number(contract!.cost)).toBe(Number(scenario.proposed_cost))
+  })
+
+  it('a rejected scenario leaves the contract alone', async () => {
+    const author = await signInAs(ACCOUNTS.commercial.email)
+    const vp = await signInAs(ACCOUNTS.vp.email)
+    const scenario = await draftFor(author, ACCOUNTS.commercial.email, 'Tidak diterapkan')
+    await submit(author, scenario.id)
+
+    const { data: before } = await author
+      .from('contracts')
+      .select('tarif')
+      .eq('id', scenario.contract_id)
+      .single()
+
+    const {
+      data: { user: vpUser },
+    } = await vp.auth.getUser()
+    await vp
+      .from('scenarios')
+      .update({
+        status: 'rejected',
+        decided_by: vpUser!.id,
+        decided_at: new Date().toISOString(),
+        rejection_reason: 'Terlalu tinggi',
+      })
+      .eq('id', scenario.id)
+
+    const { data: after } = await author
+      .from('contracts')
+      .select('tarif')
+      .eq('id', scenario.contract_id)
+      .single()
+    expect(Number(after!.tarif)).toBe(Number(before!.tarif))
   })
 
   it('a rejection must carry a reason', async () => {

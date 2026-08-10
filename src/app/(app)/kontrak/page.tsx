@@ -1,6 +1,9 @@
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
+
 import { ContractTable } from '@/components/contracts/contract-table'
 import { EmptyState } from '@/components/ui/states'
-import { requireProfile } from '@/lib/auth'
+import { canEditContracts, requireProfile } from '@/lib/auth'
 import { listContracts } from '@/lib/data/contracts'
 
 export const metadata = { title: 'Kontrak — G-CME' }
@@ -11,13 +14,24 @@ export default async function KontrakPage() {
 
   return (
     <div className="space-y-4">
-      <header>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
         <h1 className="text-xl font-extrabold text-gray-900 sm:text-2xl">Daftar Kontrak</h1>
         <p className="mt-1 text-sm text-gray-500">
           {profile.business_line
             ? `${contracts.length} kontrak pada lini ${profile.business_line}.`
             : `${contracts.length} kontrak di seluruh lini bisnis.`}
         </p>
+        </div>
+        {canEditContracts(profile) ? (
+          <Link
+            href="/kontrak/baru"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-light"
+          >
+            <Plus size={15} aria-hidden="true" />
+            Kontrak Baru
+          </Link>
+        ) : null}
       </header>
 
       {contracts.length === 0 ? (

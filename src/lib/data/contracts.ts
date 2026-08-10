@@ -31,6 +31,10 @@ export interface ContractView {
   status: StatusBand
   margin: MarginHealth
   openCaseCount: number
+  /** The term this contract held before it was last renewed, if it ever was. */
+  previousEndDate: string | null
+  /** When someone last recorded chasing this renewal. */
+  followedUpAt: string | null
   /** When the row last changed, for reporting how current the figures are. */
   updatedAt: string
 }
@@ -61,6 +65,8 @@ const toView = (
     status: statusBand(daysLeft),
     margin: marginHealth(Number(row.tarif), Number(row.cost), Number(row.min_gpm_target)),
     openCaseCount: openCaseCounts.get(row.customer_id) ?? 0,
+    previousEndDate: row.previous_end_date,
+    followedUpAt: row.followed_up_at,
     updatedAt: row.updated_at,
   }
 }

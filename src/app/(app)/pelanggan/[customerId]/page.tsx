@@ -2,7 +2,9 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, Lightbulb } from 'lucide-react'
 
+import { logCase, toggleCase } from '@/app/(app)/pelanggan/[customerId]/actions'
 import { GpmIndicator, RfmBadge, StatusBadge } from '@/components/ui/badges'
+import { canEditContracts, requireProfile } from '@/lib/auth'
 import { listCasesForCustomer, listContracts } from '@/lib/data/contracts'
 import type { ContractView } from '@/lib/data/contracts'
 import {
@@ -63,6 +65,8 @@ export default async function PelangganDetailPage({
   params: Promise<{ customerId: string }>
 }) {
   const { customerId } = await params
+  const profile = await requireProfile()
+  const canManageCases = canEditContracts(profile)
   const contracts = await listContracts()
   const contract = contracts.find((c) => c.customerId === customerId)
   if (!contract) notFound()
@@ -186,10 +190,42 @@ export default async function PelangganDetailPage({
                     {serviceCase.status === 'OPEN' ? 'TERBUKA' : 'SELESAI'}
                   </span>
                   <p className="text-gray-700">{serviceCase.description}</p>
+                  {canManageCases ? (
+                    <form action={toggleCase} className="mt-1.5">
+                      <input type="hidden" name="case_id" value={serviceCase.id} />
+                      <input type="hidden" name="customer_id" value={customerId} />
+                      <input type="hidden" name="status" value={serviceCase.status} />
+                      <button
+                        type="submit"
+                        className="text-xs font-semibold text-gray-500 underline hover:text-primary"
+                      >
+                        {serviceCase.status === 'OPEN' ? 'Tandai selesai' : 'Buka kembali'}
+                      </button>
+                    </form>
+                  ) : null}
                 </li>
               ))}
             </ul>
           )}
+
+          {canManageCases ? (
+            <form action={logCase} className="mt-4 flex gap-2 border-t border-gray-100 pt-4">
+              <input type="hidden" name="customer_id" value={customerId} />
+              <input
+                name="description"
+                required
+                placeholder="Catat kasus layanan baru…"
+                aria-label="Catat kasus layanan baru"
+                className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              />
+              <button
+                type="submit"
+                className="shrink-0 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-primary-light"
+              >
+                Catat
+              </button>
+            </form>
+          ) : null}
         </section>
       </div>
     </div>

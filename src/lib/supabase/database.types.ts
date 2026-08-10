@@ -69,8 +69,10 @@ export type Database = {
           contract_end_date: string
           cost: number
           customer_id: string
+          followed_up_at: string | null
           id: string
           min_gpm_target: number
+          previous_end_date: string | null
           service_type: string
           source_end_date: string
           tarif: number
@@ -81,8 +83,10 @@ export type Database = {
           contract_end_date: string
           cost: number
           customer_id: string
+          followed_up_at?: string | null
           id?: string
           min_gpm_target: number
+          previous_end_date?: string | null
           service_type: string
           source_end_date: string
           tarif: number
@@ -93,8 +97,10 @@ export type Database = {
           contract_end_date?: string
           cost?: number
           customer_id?: string
+          followed_up_at?: string | null
           id?: string
           min_gpm_target?: number
+          previous_end_date?: string | null
           service_type?: string
           source_end_date?: string
           tarif?: number
@@ -317,6 +323,7 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      caller_sees_all_lines: { Args: never; Returns: boolean }
       invoke_reminder_email: { Args: never; Returns: undefined }
       invoke_sheets_sync: { Args: never; Returns: undefined }
       mark_notification_emailed: {
