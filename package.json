@@ -17,7 +17,8 @@
     "test:rls": "vitest run --config vitest.rls.config.ts",
     "test:e2e": "playwright test",
     "sheets:sync": "tsx scripts/sync-sheets.ts",
-    "functions:serve": "supabase functions serve send-reminders --env-file supabase/functions/.env.local"
+    "functions:serve": "supabase functions serve send-reminders --env-file supabase/functions/.env.local",
+    "deploy:db": "tsx scripts/deploy-hosted.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",

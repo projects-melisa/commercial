@@ -21,12 +21,30 @@ export const anonClient = (): Client => createClient<Database>(url(), anonKey(),
  * A client authenticated as one of the seeded users, using the anon key exactly as
  * the browser does. Nothing here elevates privileges, so what these tests see is
  * what that person's session sees.
+ *
+ * Sessions are cached per persona. There are only four accounts and every test wants
+ * one of them, so signing in afresh each time bought nothing and — against a hosted
+ * project, which rate-limits its token endpoint — cost the suite its later tests.
+ * Reusing a session is also closer to what a real user's browser does.
  */
-export const signInAs = async (email: string): Promise<Client> => {
-  const client = createClient<Database>(url(), anonKey(), anonOptions)
-  const { error } = await client.auth.signInWithPassword({ email, password: DEMO_PASSWORD })
-  if (error) throw new Error(`could not sign in as ${email}: ${error.message}`)
-  return client
+const sessions = new Map<string, Promise<Client>>()
+
+export const signInAs = (email: string): Promise<Client> => {
+  const cached = sessions.get(email)
+  if (cached) return cached
+
+  const pending = (async () => {
+    const client = createClient<Database>(url(), anonKey(), anonOptions)
+    const { error } = await client.auth.signInWithPassword({ email, password: DEMO_PASSWORD })
+    if (error) {
+      sessions.delete(email)
+      throw new Error(`could not sign in as ${email}: ${error.message}`)
+    }
+    return client
+  })()
+
+  sessions.set(email, pending)
+  return pending
 }
 
 export const ACCOUNTS = {

@@ -110,13 +110,23 @@ Deno.serve(async (request) => {
     })
     if (selectionError) throw new Error(`selection failed: ${selectionError.message}`)
 
-    // 2. Delivery — everything still owed an email, including anything a previous
-    //    run recorded but could not send.
-    const { data: pending, error: pendingError } = await supabase
+    /*
+     * 2. Delivery.
+     *
+     * The scheduled run clears everything still owed an email, including anything an
+     * earlier run recorded but could not send. The manual run deliberately does not:
+     * someone pressing "Kirim Reminder" on one contract expects that contract to be
+     * chased, not the whole outstanding backlog to go out at once.
+     */
+    let query = supabase
       .from('notifications')
       .select('id, title, body, severity, recipient_id')
       .not('milestone_key', 'is', null)
       .is('emailed_at', null)
+
+    if (targetContractId) query = query.eq('contract_id', targetContractId)
+
+    const { data: pending, error: pendingError } = await query
       .order('created_at')
       .returns<PendingReminder[]>()
     if (pendingError) throw new Error(`could not read pending reminders: ${pendingError.message}`)

@@ -224,6 +224,45 @@ test.describe('reminders and notifications', () => {
     }
   })
 
+  test('prompting one contract does not flush the whole backlog', async ({ page, request }) => {
+    /*
+     * Selection is scoped to the chosen contract, but delivery once was not: it sent
+     * every notification still owed an email. Pressing the button on a single
+     * contract then emptied the entire outstanding queue in one go, which is not
+     * what anyone pressing it expects.
+     */
+    const inboxCount = async (): Promise<number> => {
+      const response = await request.get('http://127.0.0.1:54324/api/v1/messages?limit=1')
+      return ((await response.json()) as { messages_count: number }).messages_count
+    }
+
+    // Build a backlog: record every due reminder without delivering any of them.
+    const rpc = await request.post(
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/send_expiry_reminders`,
+      {
+        headers: {
+          apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
+          'Content-Type': 'application/json',
+        },
+        data: {},
+      },
+    )
+    expect(rpc.ok()).toBe(true)
+    expect(((await rpc.json()) as unknown[]).length).toBeGreaterThan(1)
+
+    const before = await inboxCount()
+
+    await signIn(page, PERSONAS.groundHandling.email)
+    await page.goto('/kritis')
+    const entry = page.locator('li').filter({ hasText: 'Mengapa perlu perhatian:' }).first()
+    await entry.getByRole('button', { name: 'Kirim Reminder' }).click()
+    await expect(entry.getByText(/Reminder terkirim|sudah pernah dikirim/)).toBeVisible()
+
+    // At most one new message, however many were queued behind it.
+    expect(await inboxCount()).toBeLessThanOrEqual(before + 1)
+  })
+
   test('notifications can be filtered and marked read', async ({ page }) => {
     await signIn(page, PERSONAS.cargo.email)
     await page.goto('/notifikasi')

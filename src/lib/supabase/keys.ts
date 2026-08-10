@@ -11,8 +11,12 @@
  * moved on from the legacy key.
  */
 export const supabasePublicKey = (): string => {
+  // An empty variable counts as absent. Build and deploy tooling routinely defines
+  // every known key as "" rather than omitting it, and `??` alone would then pick
+  // the empty publishable key over a perfectly good anon key.
   const key =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
 
   if (!key) {
     throw new Error(
