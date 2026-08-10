@@ -1,0 +1,10 @@
+{
+  "description": "Streamline commercial contract management with real-time monitoring, dynamic P&L simulation, and insightful analytics tailored for business leaders.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
