@@ -15,9 +15,7 @@ import { ACCOUNTS, anonClient, serviceClient, signInAs } from './client.ts'
 
 const EVERY_PERSONA = [
   { persona: 'a VP', account: ACCOUNTS.vp },
-  { persona: 'Ground Handling', account: ACCOUNTS.groundHandling },
-  { persona: 'Cargo & Warehouse', account: ACCOUNTS.cargo },
-  { persona: 'Ancillary Business', account: ACCOUNTS.ancillary },
+  { persona: 'a Commercial user', account: ACCOUNTS.commercial },
 ] as const
 
 describe('the sheet-sync log is readable by everyone and writable by nobody', () => {

@@ -22,8 +22,9 @@ export default async function DashboardPage() {
   const contracts = await listContracts()
   const summary = summarise(contracts)
 
-  const scopeLabel =
-    profile.role === 'vp' ? 'seluruh lini bisnis' : `lini ${profile.business_line}`
+  // Scope follows the business line, not the role: a Commercial user without one
+  // covers the whole portfolio just as a VP does.
+  const scopeLabel = profile.business_line ? `lini ${profile.business_line}` : 'seluruh lini bisnis'
 
   if (contracts.length === 0) {
     return (

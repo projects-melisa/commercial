@@ -15,7 +15,7 @@ const openContract = async (page: import('@playwright/test').Page, customer: str
 
 test.describe('editing a contract', () => {
   test('a Commercial user edits a contract in their own line', async ({ page }) => {
-    await signIn(page, PERSONAS.ancillary.email)
+    await signIn(page, PERSONAS.commercial.email)
     await openContract(page, 'Telko Solusindo')
 
     await clickWhenReady(page, 'Ubah Kontrak', async () => {
@@ -32,7 +32,7 @@ test.describe('editing a contract', () => {
   test('an edit that would breach the contract´s own target warns before saving', async ({
     page,
   }) => {
-    await signIn(page, PERSONAS.ancillary.email)
+    await signIn(page, PERSONAS.commercial.email)
     await openContract(page, 'Solusi Parkir Bandara')
 
     // Target is 35%; a cost of 30.000.000 against a 35.000.000 tarif gives 14,3%.
@@ -52,7 +52,7 @@ test.describe('editing a contract', () => {
   })
 
   test('impossible values are refused before they reach the database', async ({ page }) => {
-    await signIn(page, PERSONAS.groundHandling.email)
+    await signIn(page, PERSONAS.commercial.email)
     await openContract(page, 'Air Papua Charter')
 
     await clickWhenReady(page, 'Ubah Kontrak', async () => {
@@ -68,7 +68,7 @@ test.describe('editing a contract', () => {
 
 test.describe('the simulator', () => {
   test('moving tarif recomputes margin against this contract´s own target', async ({ page }) => {
-    await signIn(page, PERSONAS.cargo.email)
+    await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
     await page.getByRole('link', { name: 'Samudera Cold Chain' }).click()
     await page.getByRole('link', { name: 'Buka Simulator' }).click()
@@ -87,7 +87,7 @@ test.describe('the simulator', () => {
   })
 
   test('a written insight accompanies the result', async ({ page }) => {
-    await signIn(page, PERSONAS.groundHandling.email)
+    await signIn(page, PERSONAS.commercial.email)
     await page.goto('/simulator')
     await page.getByRole('link', { name: /Garuda Nusantara Airlines/ }).click()
 
@@ -104,7 +104,7 @@ test.describe('the approval round trip', () => {
     const scenarioName = `Uji persetujuan ${Date.now()}`
 
     // Commercial authors and submits.
-    await signIn(page, PERSONAS.groundHandling.email)
+    await signIn(page, PERSONAS.commercial.email)
     await page.goto('/simulator')
     await page.getByRole('link', { name: /Bali Sunshine Airways/ }).click()
 
@@ -153,7 +153,7 @@ test.describe('the approval round trip', () => {
   test('a rejection requires a reason and reaches the author', async ({ page, browser }) => {
     const scenarioName = `Uji penolakan ${Date.now()}`
 
-    await signIn(page, PERSONAS.cargo.email)
+    await signIn(page, PERSONAS.commercial.email)
     await page.goto('/simulator')
     await page.getByRole('link', { name: /Jasa Kilat Express/ }).click()
 
@@ -190,7 +190,7 @@ test.describe('the approval round trip', () => {
 
 test.describe('reminders and notifications', () => {
   test('a reminder sent on demand is recorded and actually emailed', async ({ page, request }) => {
-    await signIn(page, PERSONAS.groundHandling.email)
+    await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kritis')
 
     const entry = page.locator('li').filter({ hasText: 'Mengapa perlu perhatian:' }).first()
@@ -253,7 +253,7 @@ test.describe('reminders and notifications', () => {
 
     const before = await inboxCount()
 
-    await signIn(page, PERSONAS.groundHandling.email)
+    await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kritis')
     const entry = page.locator('li').filter({ hasText: 'Mengapa perlu perhatian:' }).first()
     await entry.getByRole('button', { name: 'Kirim Reminder' }).click()
@@ -264,7 +264,7 @@ test.describe('reminders and notifications', () => {
   })
 
   test('notifications can be filtered and marked read', async ({ page }) => {
-    await signIn(page, PERSONAS.cargo.email)
+    await signIn(page, PERSONAS.commercial.email)
     await page.goto('/notifikasi')
 
     await page.getByRole('button', { name: 'Kritis', exact: true }).click()

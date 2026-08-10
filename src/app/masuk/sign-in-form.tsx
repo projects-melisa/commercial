@@ -5,7 +5,7 @@ import { useFormStatus } from 'react-dom'
 import { Loader2, Lock, LogIn, Mail, ShieldCheck } from 'lucide-react'
 
 import { signIn, type SignInState } from '@/app/masuk/actions'
-import { DEMO_ACCOUNTS } from '@/lib/demo-accounts'
+import { DEMO_ACCOUNTS, demoAccountLabel } from '@/lib/demo-accounts'
 
 const SubmitButton = () => {
   const { pending } = useFormStatus()
@@ -61,7 +61,7 @@ export const SignInForm = ({ next }: { next: string }) => {
           </option>
           {DEMO_ACCOUNTS.map((account) => (
             <option key={account.email} value={account.email}>
-              {account.nama} — {account.role === 'vp' ? 'VP / Dirut DC' : account.businessLine}
+              {account.nama} — {demoAccountLabel(account)}
             </option>
           ))}
         </select>

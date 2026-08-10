@@ -15,9 +15,9 @@ test.describe('signing in and out', () => {
   })
 
   test('a Commercial user can sign in and out', async ({ page }) => {
-    await signIn(page, PERSONAS.groundHandling.email)
+    await signIn(page, PERSONAS.commercial.email)
     await expect(
-      page.getByRole('heading', { name: new RegExp(PERSONAS.groundHandling.nama) }),
+      page.getByRole('heading', { name: new RegExp(PERSONAS.commercial.nama) }),
     ).toBeVisible()
 
     await signOut(page)
@@ -48,36 +48,32 @@ test.describe('signing in and out', () => {
     await page.getByLabel('Akun Demo').selectOption(PERSONAS.vp.email)
     await expect(page.getByLabel('Email')).toHaveValue(PERSONAS.vp.email)
 
-    await page.getByLabel('Email').fill(PERSONAS.ancillary.email)
+    await page.getByLabel('Email').fill(PERSONAS.commercial.email)
     await page.getByRole('button', { name: 'Masuk' }).click()
     // Wait for the sign-in to land before navigating, or the redirect races the goto.
     await expect(page).toHaveURL(/\/$/)
 
-    // The session is Ancillary's, not the VP's: five contracts, and no approval queue.
-    await page.goto('/kontrak')
-    expect(await contractRowCount(page)).toBe(5)
+    // The session is the Commercial user's, not the VP's. Both see all 20 contracts,
+    // so the approval queue is what tells them apart: it belongs to the VP alone, and
+    // picking the VP in the dropdown did not grant it.
     await expect(page.getByRole('link', { name: 'Persetujuan' })).toHaveCount(0)
+    await page.goto('/persetujuan')
+    await expect(page).toHaveURL(/\/$/)
   })
 })
 
-test.describe('business-line scoping as seen in the interface', () => {
-  const cases = [
-    { persona: PERSONAS.groundHandling, rows: 8 },
-    { persona: PERSONAS.cargo, rows: 7 },
-    { persona: PERSONAS.ancillary, rows: 5 },
-  ]
+test.describe('portfolio scope as seen in the interface', () => {
+  test('a Commercial user sees all 20 contracts across all three lines', async ({ page }) => {
+    await signIn(page, PERSONAS.commercial.email)
+    await page.goto('/kontrak')
 
-  for (const { persona, rows } of cases) {
-    test(`${persona.businessLine} sees ${rows} contracts and no other line`, async ({ page }) => {
-      await signIn(page, persona.email)
-      await page.goto('/kontrak')
+    expect(await contractRowCount(page)).toBe(20)
 
-      expect(await contractRowCount(page)).toBe(rows)
-
-      const lines = await page.locator('table tbody tr td:nth-child(2)').allInnerTexts()
-      expect(new Set(lines.map((line) => line.trim()))).toEqual(new Set([persona.businessLine]))
-    })
-  }
+    const lines = await page.locator('table tbody tr td:nth-child(2)').allInnerTexts()
+    expect(new Set(lines.map((line) => line.trim()))).toEqual(
+      new Set(['Ground Handling', 'Cargo & Warehouse', 'Ancillary Business']),
+    )
+  })
 
   test('a VP sees all 20 contracts across all three lines', async ({ page }) => {
     await signIn(page, PERSONAS.vp.email)
@@ -92,24 +88,30 @@ test.describe('business-line scoping as seen in the interface', () => {
   })
 
   test('headline figures agree with the table beneath them', async ({ page }) => {
-    await signIn(page, PERSONAS.cargo.email)
+    await signIn(page, PERSONAS.commercial.email)
 
     // The dashboard's "Total Kontrak" card must match the contract list exactly.
     const total = await page
       .locator('p', { hasText: /^Total Kontrak$/ })
       .locator('xpath=following-sibling::p[1]')
       .innerText()
-    expect(total.trim()).toBe('7')
+    expect(total.trim()).toBe('20')
 
     await page.goto('/kontrak')
-    expect(await contractRowCount(page)).toBe(7)
+    expect(await contractRowCount(page)).toBe(20)
   })
 
-  test('the Ancillary user´s five contracts fill the screen sensibly', async ({ page }) => {
-    await signIn(page, PERSONAS.ancillary.email)
+  test('a small result set fills the screen sensibly rather than looking broken', async ({
+    page,
+  }) => {
+    await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
 
-    // A small scope should look deliberate, not broken: real rows, no empty state.
+    // No seeded account is confined to one line any more, so the smallest scope the
+    // interface has to render well is reached by filtering. Ancillary Business is 5 of
+    // the 20 contracts — the same handful this used to check via a scoped login.
+    await page.getByLabel('Saring berdasarkan lini bisnis').selectOption('Ancillary Business')
+
     expect(await contractRowCount(page)).toBe(5)
     await expect(page.getByText('Tidak ada kontrak yang cocok')).toHaveCount(0)
     await expect(page.getByRole('table')).toBeVisible()
@@ -127,7 +129,7 @@ test.describe('role capabilities', () => {
   })
 
   test('a Commercial user is offered the approval queue nowhere', async ({ page }) => {
-    await signIn(page, PERSONAS.groundHandling.email)
+    await signIn(page, PERSONAS.commercial.email)
     await expect(page.getByRole('link', { name: 'Persetujuan' })).toHaveCount(0)
 
     // And reaching for it directly lands back on the dashboard.

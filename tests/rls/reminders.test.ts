@@ -4,13 +4,33 @@
  * `send_expiry_reminders` is security definer, so RLS does not apply inside it. That
  * makes it the one place where the business-line boundary has to be re-imposed by
  * hand, and therefore the one place worth testing hardest.
+ *
+ * The seeded Commercial user covers every line, so the out-of-scope case is asserted
+ * against a line-scoped user the test creates: the check inside the function still
+ * exists and still has to work, whether or not any seeded account exercises it.
  */
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { ACCOUNTS, serviceClient, signInAs } from './client.ts'
+import {
+  ACCOUNTS,
+  createLineScopedCommercial,
+  serviceClient,
+  signInAs,
+  type ScopedUser,
+} from './client.ts'
 
 describe('scope', () => {
-  it('a Commercial user cannot prompt on a contract outside their line', async () => {
+  let scoped: ScopedUser
+
+  beforeAll(async () => {
+    scoped = await createLineScopedCommercial('Cargo & Warehouse')
+  })
+
+  afterAll(async () => {
+    await scoped.cleanup()
+  })
+
+  it('a line-scoped Commercial user cannot prompt on a contract outside their line', async () => {
     const service = serviceClient()
     const { data: outOfScope } = await service
       .from('contracts')
@@ -19,30 +39,31 @@ describe('scope', () => {
       .limit(1)
     const target = outOfScope![0]!
 
-    const cargo = await signInAs(ACCOUNTS.cargo.email)
-
     // The row is invisible to a direct select…
-    const { data: visible } = await cargo.from('contracts').select('id').eq('id', target.id)
+    const { data: visible } = await scoped.client
+      .from('contracts')
+      .select('id')
+      .eq('id', target.id)
     expect(visible).toEqual([])
 
     // …and the function must not become a way around that. Returning nothing is the
     // point: no customer name, no days remaining, no notification written elsewhere.
-    const { data, error } = await cargo.rpc('send_expiry_reminders', {
+    const { data, error } = await scoped.client.rpc('send_expiry_reminders', {
       target_contract_id: target.id,
     })
     expect(error).toBeNull()
     expect(data).toEqual([])
   })
 
-  it('a Commercial user may prompt on a contract in their own line', async () => {
-    const cargo = await signInAs(ACCOUNTS.cargo.email)
-    const { data: own } = await cargo
+  it('a Commercial user covering every line may prompt on any contract', async () => {
+    const commercial = await signInAs(ACCOUNTS.commercial.email)
+    const { data: own } = await commercial
       .from('contracts')
       .select('id, contract_end_date')
       .order('contract_end_date')
       .limit(1)
 
-    const { data, error } = await cargo.rpc('send_expiry_reminders', {
+    const { data, error } = await commercial.rpc('send_expiry_reminders', {
       target_contract_id: own![0]!.id,
     })
     expect(error).toBeNull()
@@ -80,8 +101,9 @@ describe('milestones', () => {
       .limit(1)
     const target = aman![0]!
 
-    const account = Object.values(ACCOUNTS).find((a) => a.businessLine === target.business_line)!
-    const client = await signInAs(account.email)
+    // The Commercial user covers every line, so they can prompt on whichever line this
+    // contract happens to belong to.
+    const client = await signInAs(ACCOUNTS.commercial.email)
 
     const { data } = await client.rpc('send_expiry_reminders', {
       target_contract_id: target.id,

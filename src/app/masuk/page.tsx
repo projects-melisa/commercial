@@ -1,7 +1,7 @@
 import { Building2 } from 'lucide-react'
 
 import { SignInForm } from '@/app/masuk/sign-in-form'
-import { DEMO_ACCOUNTS } from '@/lib/demo-accounts'
+import { DEMO_ACCOUNTS, demoAccountLabel } from '@/lib/demo-accounts'
 
 export const metadata = { title: 'Masuk — G-CME' }
 
@@ -39,7 +39,7 @@ export default async function MasukPage({
             {DEMO_ACCOUNTS.map((account) => (
               <div key={account.email} className="rounded-lg bg-white/10 px-3 py-2">
                 <dt className="font-semibold">
-                  {account.nama} · {account.role === 'vp' ? 'VP / Dirut DC' : account.businessLine}
+                  {account.nama} · {demoAccountLabel(account)}
                 </dt>
                 <dd className="text-xs text-white/70">{account.keterangan}</dd>
               </div>

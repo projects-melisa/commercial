@@ -9,8 +9,16 @@ import { signOut } from '@/app/masuk/actions'
 import { navItemsFor } from '@/components/shell/nav'
 import type { ProfileRow } from '@/lib/supabase/types'
 
-const roleLabel = (profile: ProfileRow): string =>
-  profile.role === 'vp' ? 'VP / Dirut DC' : `Commercial · ${profile.business_line}`
+/**
+ * The signed-in identity, as shown in the sidebar.
+ *
+ * A Commercial user with no business line covers all of them, so there is nothing to
+ * qualify the role with — appending a null would read as "Commercial · null".
+ */
+const roleLabel = (profile: ProfileRow): string => {
+  if (profile.role === 'vp') return 'VP / Dirut DC'
+  return profile.business_line ? `Commercial · ${profile.business_line}` : 'Commercial'
+}
 
 export const AppShell = ({
   profile,

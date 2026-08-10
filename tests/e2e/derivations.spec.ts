@@ -11,7 +11,7 @@ import { PERSONAS, signIn } from './personas.ts'
 
 test.describe('margin against each contract´s own target', () => {
   test('the one contract below its own target is shown as below target', async ({ page }) => {
-    await signIn(page, PERSONAS.cargo.email)
+    await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
 
     // Samudera Cold Chain: tarif 11.000, cost 7.800 → 29,1% against a 30% target.
@@ -26,7 +26,7 @@ test.describe('margin against each contract´s own target', () => {
   })
 
   test('a contract above its own target carries no breach warning', async ({ page }) => {
-    await signIn(page, PERSONAS.groundHandling.email)
+    await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
 
     // Garuda Nusantara: 12.500.000 / 9.000.000 → 28,0% against a 25% target.
@@ -49,7 +49,7 @@ test.describe('margin against each contract´s own target', () => {
 
 test.describe('Rupiah across three orders of magnitude', () => {
   test('a per-kg cargo tarif is not collapsed to zero', async ({ page }) => {
-    await signIn(page, PERSONAS.cargo.email)
+    await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
 
     // Indo Logistic Solusi is priced at Rp 4.200 per kg — the smallest tarif in the
@@ -61,7 +61,7 @@ test.describe('Rupiah across three orders of magnitude', () => {
   })
 
   test('a large flat fee renders in full on the detail page', async ({ page }) => {
-    await signIn(page, PERSONAS.ancillary.email)
+    await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
 
     // Angkasa Retail Group: a Rp 120.000.000 flat fee.
@@ -70,10 +70,15 @@ test.describe('Rupiah across three orders of magnitude', () => {
   })
 
   test('the contract list abbreviates only where it stays legible', async ({ page }) => {
-    await signIn(page, PERSONAS.cargo.email)
+    await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
+    // Narrowed to Cargo & Warehouse, whose tarifs are per kg. The Commercial user now
+    // sees every line, and Ground Handling's millions legitimately do abbreviate — the
+    // property under test is that the small per-kg figures are not swept up with them.
+    await page.getByLabel('Saring berdasarkan lini bisnis').selectOption('Cargo & Warehouse')
 
     const tarifCells = await page.locator('table tbody tr td:nth-child(8)').allInnerTexts()
+    expect(tarifCells.length).toBeGreaterThan(0)
     // Cargo tarifs are all four- and five-figure, so none should be abbreviated.
     for (const cell of tarifCells) {
       expect(cell).not.toMatch(/jt|M|T/)
@@ -113,7 +118,7 @@ test.describe('status banding', () => {
   })
 
   test('each queue entry states why it needs attention and what to do', async ({ page }) => {
-    await signIn(page, PERSONAS.groundHandling.email)
+    await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kritis')
 
     await expect(page.getByText('Mengapa perlu perhatian:').first()).toBeVisible()

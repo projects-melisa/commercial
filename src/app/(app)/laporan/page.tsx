@@ -61,9 +61,9 @@ export default async function LaporanPage() {
             Laporan &amp; Analitik
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            {profile.role === 'vp'
-              ? 'Seluruh lini bisnis.'
-              : `Lini ${profile.business_line} saja — sesuai hak akses Anda.`}
+            {profile.business_line
+              ? `Lini ${profile.business_line} saja — sesuai hak akses Anda.`
+              : 'Seluruh lini bisnis.'}
           </p>
         </div>
         <ExportButton contracts={contracts} />

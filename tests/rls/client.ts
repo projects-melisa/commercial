@@ -47,11 +47,64 @@ export const signInAs = (email: string): Promise<Client> => {
   return pending
 }
 
+/**
+ * The two seeded logins, one per role. Neither is confined to a business line: the VP
+ * monitors the whole portfolio and the Commercial user now manages all of it.
+ */
 export const ACCOUNTS = {
   vp: DEMO_ACCOUNTS.find((a) => a.role === 'vp')!,
-  groundHandling: DEMO_ACCOUNTS.find((a) => a.businessLine === 'Ground Handling')!,
-  cargo: DEMO_ACCOUNTS.find((a) => a.businessLine === 'Cargo & Warehouse')!,
-  ancillary: DEMO_ACCOUNTS.find((a) => a.businessLine === 'Ancillary Business')!,
+  commercial: DEMO_ACCOUNTS.find((a) => a.role === 'commercial')!,
+}
+
+export const OUT_OF_SCOPE_LINE = 'Cargo & Warehouse' as const
+
+export interface ScopedUser {
+  client: Client
+  userId: string
+  cleanup: () => Promise<void>
+}
+
+/**
+ * A Commercial user confined to one business line, created for the duration of a test.
+ *
+ * No seeded account is line-scoped any more, but the policies still express the
+ * boundary and it is the confidentiality guarantee this system exists to provide. So
+ * the test brings its own scoped user rather than letting the property go unasserted
+ * simply because the demo no longer ships an account that shows it.
+ */
+export const createLineScopedCommercial = async (
+  businessLine: 'Ground Handling' | 'Cargo & Warehouse' | 'Ancillary Business',
+): Promise<ScopedUser> => {
+  const service = serviceClient()
+  const email = `scoped-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@gapura.test`
+
+  const { data: created, error: createError } = await service.auth.admin.createUser({
+    email,
+    password: DEMO_PASSWORD,
+    email_confirm: true,
+  })
+  if (createError) throw new Error(`could not create a scoped user: ${createError.message}`)
+  const userId = created.user!.id
+
+  const { error: profileError } = await service
+    .from('profiles')
+    .insert({ id: userId, nama: 'Commercial (scoped)', role: 'commercial', business_line: businessLine })
+  if (profileError) throw new Error(`could not profile the scoped user: ${profileError.message}`)
+
+  const client = createClient<Database>(url(), anonKey(), anonOptions)
+  const { error: signInError } = await client.auth.signInWithPassword({
+    email,
+    password: DEMO_PASSWORD,
+  })
+  if (signInError) throw new Error(`could not sign in the scoped user: ${signInError.message}`)
+
+  return {
+    client,
+    userId,
+    cleanup: async () => {
+      await service.auth.admin.deleteUser(userId)
+    },
+  }
 }
 
 /** Service-role client, used only to set up and tear down fixtures. */

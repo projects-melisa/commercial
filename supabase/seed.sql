@@ -18,22 +18,22 @@ insert into auth.users (
   confirmation_token, recovery_token, email_change_token_new, email_change,
   email_change_token_current, phone_change, phone_change_token, reauthentication_token
 ) values (
-  '00000000-0000-0000-0000-000000000000', '4d4e32fa-98f2-4b0a-9b60-c3b71488ec80', 'authenticated', 'authenticated',
+  '00000000-0000-0000-0000-000000000000', '9cb168d5-e200-44fa-b3fc-772fa925d86c', 'authenticated', 'authenticated',
   'vp@gapura.test', crypt('Gapura2026!', gen_salt('bf')), now(),
-  '{"provider":"email","providers":["email"]}', '{"nama":"Rizal Pratama"}',
+  '{"provider":"email","providers":["email"]}', '{"nama":"VP"}',
   now(), now(), '', '', '', '', '', '', '', ''
 );
 
 insert into auth.identities (
   id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at
 ) values (
-  gen_random_uuid(), '4d4e32fa-98f2-4b0a-9b60-c3b71488ec80', '4d4e32fa-98f2-4b0a-9b60-c3b71488ec80', 'email',
-  '{"sub":"4d4e32fa-98f2-4b0a-9b60-c3b71488ec80","email":"vp@gapura.test","email_verified":true}',
+  gen_random_uuid(), '9cb168d5-e200-44fa-b3fc-772fa925d86c', '9cb168d5-e200-44fa-b3fc-772fa925d86c', 'email',
+  '{"sub":"9cb168d5-e200-44fa-b3fc-772fa925d86c","email":"vp@gapura.test","email_verified":true}',
   now(), now(), now()
 );
 
 insert into public.profiles (id, nama, role, business_line) values (
-  '4d4e32fa-98f2-4b0a-9b60-c3b71488ec80', 'Rizal Pratama', 'vp',
+  '9cb168d5-e200-44fa-b3fc-772fa925d86c', 'VP', 'vp',
   null
 );
 
@@ -45,77 +45,23 @@ insert into auth.users (
   confirmation_token, recovery_token, email_change_token_new, email_change,
   email_change_token_current, phone_change, phone_change_token, reauthentication_token
 ) values (
-  '00000000-0000-0000-0000-000000000000', 'a82b8f9b-cad3-4f3e-a615-1b4865af5bbc', 'authenticated', 'authenticated',
-  'ground.handling@gapura.test', crypt('Gapura2026!', gen_salt('bf')), now(),
-  '{"provider":"email","providers":["email"]}', '{"nama":"Arief Budiman"}',
+  '00000000-0000-0000-0000-000000000000', '2cf9fb8c-b338-45dc-a715-a1bc84bebe9c', 'authenticated', 'authenticated',
+  'commercial@gapura.test', crypt('Gapura2026!', gen_salt('bf')), now(),
+  '{"provider":"email","providers":["email"]}', '{"nama":"Commercial"}',
   now(), now(), '', '', '', '', '', '', '', ''
 );
 
 insert into auth.identities (
   id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at
 ) values (
-  gen_random_uuid(), 'a82b8f9b-cad3-4f3e-a615-1b4865af5bbc', 'a82b8f9b-cad3-4f3e-a615-1b4865af5bbc', 'email',
-  '{"sub":"a82b8f9b-cad3-4f3e-a615-1b4865af5bbc","email":"ground.handling@gapura.test","email_verified":true}',
+  gen_random_uuid(), '2cf9fb8c-b338-45dc-a715-a1bc84bebe9c', '2cf9fb8c-b338-45dc-a715-a1bc84bebe9c', 'email',
+  '{"sub":"2cf9fb8c-b338-45dc-a715-a1bc84bebe9c","email":"commercial@gapura.test","email_verified":true}',
   now(), now(), now()
 );
 
 insert into public.profiles (id, nama, role, business_line) values (
-  'a82b8f9b-cad3-4f3e-a615-1b4865af5bbc', 'Arief Budiman', 'commercial',
-  'Ground Handling'
-);
-
-insert into auth.users (
-  instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
-  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
-  -- GoTrue scans these into non-nullable Go strings; leaving them NULL makes
-  -- every sign-in fail with "Database error querying schema".
-  confirmation_token, recovery_token, email_change_token_new, email_change,
-  email_change_token_current, phone_change, phone_change_token, reauthentication_token
-) values (
-  '00000000-0000-0000-0000-000000000000', 'e07f4493-b4c0-4aee-a011-8324388bcd60', 'authenticated', 'authenticated',
-  'cargo@gapura.test', crypt('Gapura2026!', gen_salt('bf')), now(),
-  '{"provider":"email","providers":["email"]}', '{"nama":"Sari Dewi"}',
-  now(), now(), '', '', '', '', '', '', '', ''
-);
-
-insert into auth.identities (
-  id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at
-) values (
-  gen_random_uuid(), 'e07f4493-b4c0-4aee-a011-8324388bcd60', 'e07f4493-b4c0-4aee-a011-8324388bcd60', 'email',
-  '{"sub":"e07f4493-b4c0-4aee-a011-8324388bcd60","email":"cargo@gapura.test","email_verified":true}',
-  now(), now(), now()
-);
-
-insert into public.profiles (id, nama, role, business_line) values (
-  'e07f4493-b4c0-4aee-a011-8324388bcd60', 'Sari Dewi', 'commercial',
-  'Cargo & Warehouse'
-);
-
-insert into auth.users (
-  instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
-  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
-  -- GoTrue scans these into non-nullable Go strings; leaving them NULL makes
-  -- every sign-in fail with "Database error querying schema".
-  confirmation_token, recovery_token, email_change_token_new, email_change,
-  email_change_token_current, phone_change, phone_change_token, reauthentication_token
-) values (
-  '00000000-0000-0000-0000-000000000000', 'efc100a7-0ec5-4e7c-8b00-58a630a52592', 'authenticated', 'authenticated',
-  'ancillary@gapura.test', crypt('Gapura2026!', gen_salt('bf')), now(),
-  '{"provider":"email","providers":["email"]}', '{"nama":"Hendra Wijaya"}',
-  now(), now(), '', '', '', '', '', '', '', ''
-);
-
-insert into auth.identities (
-  id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at
-) values (
-  gen_random_uuid(), 'efc100a7-0ec5-4e7c-8b00-58a630a52592', 'efc100a7-0ec5-4e7c-8b00-58a630a52592', 'email',
-  '{"sub":"efc100a7-0ec5-4e7c-8b00-58a630a52592","email":"ancillary@gapura.test","email_verified":true}',
-  now(), now(), now()
-);
-
-insert into public.profiles (id, nama, role, business_line) values (
-  'efc100a7-0ec5-4e7c-8b00-58a630a52592', 'Hendra Wijaya', 'commercial',
-  'Ancillary Business'
+  '2cf9fb8c-b338-45dc-a715-a1bc84bebe9c', 'Commercial', 'commercial',
+  null
 );
 
 -- ─── Customers (CRM_Data) ─────────────────────────────────────────────────
@@ -148,45 +94,45 @@ insert into public.contracts (
   id, customer_id, business_line, service_type, contract_end_date, source_end_date,
   tarif, cost, min_gpm_target
 ) values
-  ('6e80490f-1a60-447f-8677-582c506e04d8', 'CUST-GH-001', 'Ground Handling', 'Narrow Body B737',
+  ('efb4a100-e67a-4258-bb92-082aa7745462', 'CUST-GH-001', 'Ground Handling', 'Narrow Body B737',
    current_date + (date '2026-09-15' - date '2026-08-10'), date '2026-09-15', 12500000, 9000000, 0.25),
-  ('609f1c19-b057-4b49-badb-570a7abf598b', 'CUST-GH-002', 'Ground Handling', 'Wide Body B777',
+  ('387db85c-523a-4340-994f-ff91fb734514', 'CUST-GH-002', 'Ground Handling', 'Wide Body B777',
    current_date + (date '2026-08-30' - date '2026-08-10'), date '2026-08-30', 31000000, 24000000, 0.2),
-  ('91c39617-7226-491c-9619-8ab9c7c1d4a9', 'CUST-GH-003', 'Ground Handling', 'Private Jet Handling',
+  ('a50722d9-9c3b-461b-a586-26a566a54eed', 'CUST-GH-003', 'Ground Handling', 'Private Jet Handling',
    current_date + (date '2026-10-12' - date '2026-08-10'), date '2026-10-12', 18000000, 13000000, 0.25),
-  ('91eac21f-12c7-4296-8db8-82715694a6db', 'CUST-GH-004', 'Ground Handling', 'Narrow Body A320',
+  ('3cfd6600-8bb1-4582-8f95-db99d5a5c48b', 'CUST-GH-004', 'Ground Handling', 'Narrow Body A320',
    current_date + (date '2026-07-25' - date '2026-08-10'), date '2026-07-25', 11800000, 8800000, 0.25),
-  ('c387a1f0-6683-4575-98ce-67951109cc1f', 'CUST-GH-005', 'Ground Handling', 'Narrow Body B737',
+  ('593f5bbf-acc1-440c-9574-a9b601f216ef', 'CUST-GH-005', 'Ground Handling', 'Narrow Body B737',
    current_date + (date '2026-11-05' - date '2026-08-10'), date '2026-11-05', 12200000, 9150000, 0.22),
-  ('bfa28df4-d0dc-466e-96b6-1944f14acc67', 'CUST-GH-006', 'Ground Handling', 'Freighter B737-F',
+  ('39fc3439-43be-4070-ae60-2430ebf4daca', 'CUST-GH-006', 'Ground Handling', 'Freighter B737-F',
    current_date + (date '2026-08-15' - date '2026-08-10'), date '2026-08-15', 22000000, 17500000, 0.2),
-  ('7a13ecda-0370-4770-aa14-b7fb912c7abe', 'CUST-GH-007', 'Ground Handling', 'Turboprop ATR72',
+  ('702982ab-ee6b-4b32-91a4-651c2c7a8c80', 'CUST-GH-007', 'Ground Handling', 'Turboprop ATR72',
    current_date + (date '2026-12-01' - date '2026-08-10'), date '2026-12-01', 7500000, 5500000, 0.25),
-  ('2447c0c7-6cca-4c98-87bc-0745318bbe6b', 'CUST-GH-008', 'Ground Handling', 'Narrow Body A320',
+  ('e7c1a3b7-89d7-4f69-8445-67413e12bd98', 'CUST-GH-008', 'Ground Handling', 'Narrow Body A320',
    current_date + (date '2026-09-20' - date '2026-08-10'), date '2026-09-20', 11900000, 8900000, 0.24),
-  ('58190558-e636-4603-8328-1c91edab97bc', 'CUST-CG-009', 'Cargo & Warehouse', 'GENCO',
+  ('d140de91-fe81-481e-a92f-7f00e130387a', 'CUST-CG-009', 'Cargo & Warehouse', 'GENCO',
    current_date + (date '2026-08-01' - date '2026-08-10'), date '2026-08-01', 4500, 3200, 0.25),
-  ('7f0e5ea1-2dfe-4e19-8e06-c48126e4e8cf', 'CUST-CG-010', 'Cargo & Warehouse', 'GENCO',
+  ('84d6be44-13fd-4eaf-9e6a-ba5cebdc8511', 'CUST-CG-010', 'Cargo & Warehouse', 'GENCO',
    current_date + (date '2026-10-18' - date '2026-08-10'), date '2026-10-18', 8500, 6100, 0.25),
-  ('27ae0bb7-6ea7-4b4d-b851-d0dd8ba20851', 'CUST-CG-011', 'Cargo & Warehouse', 'GENCO',
+  ('a1e6138d-344e-41e1-99b4-6b48eb3f0b48', 'CUST-CG-011', 'Cargo & Warehouse', 'GENCO',
    current_date + (date '2026-07-30' - date '2026-08-10'), date '2026-07-30', 11000, 7800, 0.3),
-  ('6b9df9a4-ed77-484e-bfb4-c13da4b507d6', 'CUST-CG-012', 'Cargo & Warehouse', 'GENCO',
+  ('c99ab930-bd34-44a5-945b-1762427dfba7', 'CUST-CG-012', 'Cargo & Warehouse', 'GENCO',
    current_date + (date '2026-08-10' - date '2026-08-10'), date '2026-08-10', 9000, 6900, 0.2),
-  ('8098be4f-953c-4c3f-9048-3204d5d13785', 'CUST-CG-013', 'Cargo & Warehouse', 'DG',
+  ('e6118caa-61e1-4779-ae47-2e25c78d1dfd', 'CUST-CG-013', 'Cargo & Warehouse', 'DG',
    current_date + (date '2026-11-15' - date '2026-08-10'), date '2026-11-15', 4200, 3100, 0.22),
-  ('44a3ac1e-6e7e-461c-a5af-9f11952ffa93', 'CUST-CG-014', 'Cargo & Warehouse', 'DG',
+  ('b4378a8e-0fe9-4e36-9497-68b81b858628', 'CUST-CG-014', 'Cargo & Warehouse', 'DG',
    current_date + (date '2026-12-10' - date '2026-08-10'), date '2026-12-10', 8200, 6000, 0.25),
-  ('2f915fdf-fd1c-478b-a756-66b74da6fa32', 'CUST-CG-015', 'Cargo & Warehouse', 'DG',
+  ('52ec02ab-1996-46e2-8927-62b0572340e9', 'CUST-CG-015', 'Cargo & Warehouse', 'DG',
    current_date + (date '2026-09-05' - date '2026-08-10'), date '2026-09-05', 11500, 8200, 0.28),
-  ('f0ca37a7-6993-4f9c-bfaf-a36654b15335', 'CUST-AN-016', 'Ancillary Business', 'Concierge',
+  ('3c6819e4-eabf-4833-93cc-1ab13ebec5ed', 'CUST-AN-016', 'Ancillary Business', 'Concierge',
    current_date + (date '2026-10-10' - date '2026-08-10'), date '2026-10-10', 250000, 160000, 0.35),
-  ('08e24c1e-18c3-4fda-a021-433b8b21e7d1', 'CUST-AN-017', 'Ancillary Business', 'Learning Centre',
+  ('7cc61bc3-7fa9-433c-b57e-c067c9eba6ad', 'CUST-AN-017', 'Ancillary Business', 'Learning Centre',
    current_date + (date '2026-12-05' - date '2026-08-10'), date '2026-12-05', 45000000, 28000000, 0.3),
-  ('ba77a4c8-49ae-4b53-97f0-6664c29691ae', 'CUST-AN-018', 'Ancillary Business', 'Concierge',
+  ('aac8a6b3-7d71-4e69-ba10-3fd26c3b2e9b', 'CUST-AN-018', 'Ancillary Business', 'Concierge',
    current_date + (date '2026-10-05' - date '2026-08-10'), date '2026-10-05', 75000000, 48000000, 0.35),
-  ('d74ad584-2464-4add-b142-d69cdfae01bf', 'CUST-AN-019', 'Ancillary Business', 'Concierge',
+  ('30a91423-8baa-4910-8b84-0daa28ab1f04', 'CUST-AN-019', 'Ancillary Business', 'Concierge',
    current_date + (date '2026-11-30' - date '2026-08-10'), date '2026-11-30', 120000000, 85000000, 0.25),
-  ('19d99ad3-6b34-4e7f-a2f3-1f241014a447', 'CUST-AN-020', 'Ancillary Business', 'Learning Centre',
+  ('7b4a4df7-e55b-44d4-bb6d-1135e66abe4d', 'CUST-AN-020', 'Ancillary Business', 'Learning Centre',
    current_date + (date '2026-08-22' - date '2026-08-10'), date '2026-08-22', 35000000, 22000000, 0.35);
 
 -- ─── Service cases (CS_Data) ──────────────────────────────────────────────

@@ -2,11 +2,13 @@ import { expect, type Page } from '@playwright/test'
 
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from '../../src/lib/demo-accounts.ts'
 
+/**
+ * The two seeded logins, one per role. Neither is confined to a business line, so a
+ * spec that needs a small result set reaches for a filter rather than an account.
+ */
 export const PERSONAS = {
   vp: DEMO_ACCOUNTS.find((a) => a.role === 'vp')!,
-  groundHandling: DEMO_ACCOUNTS.find((a) => a.businessLine === 'Ground Handling')!,
-  cargo: DEMO_ACCOUNTS.find((a) => a.businessLine === 'Cargo & Warehouse')!,
-  ancillary: DEMO_ACCOUNTS.find((a) => a.businessLine === 'Ancillary Business')!,
+  commercial: DEMO_ACCOUNTS.find((a) => a.role === 'commercial')!,
 }
 
 /** Signs in through the real form, as a judge opening the demo would. */

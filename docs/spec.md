@@ -293,7 +293,7 @@ retained in a `source_end_date` column so nothing is lost.
 - `vp`: select on everything. No insert or update except the scenario decision transition.
 - `commercial`: select and mutate restricted to rows whose `business_line` matches the caller's profile.
 - Policies are written against the authenticated user's profile, so scoping cannot be bypassed by a client-supplied parameter.
-- Seed one Commercial user per business line plus one VP — four logins, four distinct row sets, and the largest Commercial scope still hides 60% of the portfolio.
+- **Superseded.** This originally seeded one Commercial user per business line plus one VP — four logins, four distinct row sets, the largest Commercial scope still hiding 60% of the portfolio. The demo now seeds **two logins, one per role**, and the Commercial account carries a null `business_line` meaning every line. A Commercial profile *with* a line is still confined by the policies exactly as before; no seeded account is. See "The demonstration of business-line confidentiality" below.
 
 ### Scenario approval state machine
 
@@ -364,10 +364,16 @@ a row hidden by an RLS policy and a row dropped by a mistaken query filter are
 indistinguishable — and that distinction is the confidentiality guarantee the system
 exists to provide.
 
-Covers: Ground Handling reads 8 contracts and no others; Cargo & Warehouse 7;
-Ancillary 5; VP reads 20; a Commercial write targeting another business line is
-rejected; a VP write to contracts is rejected; scenario decisions permitted only to a
-VP; unauthenticated access returns nothing from every table.
+Covers: both seeded roles read all 20 contracts; a **line-scoped Commercial user the
+suite creates for itself** reads only their own line's 7 and cannot read, write,
+author against or prompt a reminder on any other; a VP write to contracts is rejected;
+scenario decisions permitted only to a VP; unauthenticated access returns nothing from
+every table.
+
+The scoped user is a fixture rather than a seeded login because no seeded account is
+confined any more. The property is the reason this seam exists, so it is asserted
+against a user the test brings with it rather than dropped along with the accounts that
+used to demonstrate it.
 
 ### Not separately tested
 
@@ -404,6 +410,15 @@ below its target (Samudera Cold Chain, 29.1% against a 30% target). A "contracts
 breaching margin" panel is therefore nearly empty by construction. The simulator is
 where margin pressure becomes visible, because a what-if can push any contract below
 its target on demand — that is the better demo of the same claim.
+
+**The demonstration of business-line confidentiality has been given up, deliberately.**
+The demo seeds two accounts, VP and Commercial, and the Commercial one covers every
+business line. Nothing a judge can log into now shows one Commercial user being denied
+another line's tarif and cost — the headline claim of the Problem Statement. The
+policies still express the boundary, a Commercial profile with a `business_line` set is
+still confined by it, and `tests/rls/scope.test.ts` still asserts all of that against a
+user it creates. But the running demonstration is of two roles, not of three isolated
+scopes, and the Problem Statement's fourth bullet is no longer shown on screen.
 
 **The confidentiality boundary is demonstrated in the application, not enforced at the
 data source.** The Sheets mirror is an ordinary sheet without special permissions, so

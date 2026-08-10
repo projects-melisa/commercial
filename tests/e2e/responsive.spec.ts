@@ -11,7 +11,7 @@ import { PERSONAS, signIn } from './personas.ts'
 
 test.describe('on a phone', () => {
   test('navigation is reachable through the drawer', async ({ page }) => {
-    await signIn(page, PERSONAS.groundHandling.email)
+    await signIn(page, PERSONAS.commercial.email)
 
     // The desktop sidebar is hidden; the menu button replaces it.
     const openMenu = page.getByRole('button', { name: 'Buka menu navigasi' })
@@ -24,7 +24,7 @@ test.describe('on a phone', () => {
   })
 
   test('the contract table scrolls inside itself rather than the page', async ({ page }) => {
-    await signIn(page, PERSONAS.cargo.email)
+    await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
 
     // A wide table must not push the document itself sideways.
@@ -35,7 +35,7 @@ test.describe('on a phone', () => {
   })
 
   test('the dashboard stacks without clipping its figures', async ({ page }) => {
-    await signIn(page, PERSONAS.ancillary.email)
+    await signIn(page, PERSONAS.commercial.email)
 
     await expect(page.getByText('Total Kontrak')).toBeVisible()
     await expect(page.getByText('Rata-rata GPM')).toBeVisible()
@@ -80,7 +80,7 @@ test.describe('keyboard and screen reader', () => {
   })
 
   test('the simulator announces when margin crosses the target', async ({ page }) => {
-    await signIn(page, PERSONAS.cargo.email)
+    await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
     await page.getByRole('link', { name: 'Samudera Cold Chain' }).click()
     await page.getByRole('link', { name: 'Buka Simulator' }).click()
@@ -91,7 +91,7 @@ test.describe('keyboard and screen reader', () => {
   })
 
   test('the contract table is a real table with a caption and header scopes', async ({ page }) => {
-    await signIn(page, PERSONAS.ancillary.email)
+    await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
 
     await expect(page.getByRole('table')).toBeVisible()
