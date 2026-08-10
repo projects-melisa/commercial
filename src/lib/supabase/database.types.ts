@@ -77,6 +77,7 @@ export type Database = {
           source_end_date: string
           tarif: number
           updated_at: string
+          volume: number | null
         }
         Insert: {
           business_line: Database["public"]["Enums"]["business_line"]
@@ -91,6 +92,7 @@ export type Database = {
           source_end_date: string
           tarif: number
           updated_at?: string
+          volume?: number | null
         }
         Update: {
           business_line?: Database["public"]["Enums"]["business_line"]
@@ -105,6 +107,7 @@ export type Database = {
           source_end_date?: string
           tarif?: number
           updated_at?: string
+          volume?: number | null
         }
         Relationships: [
           {

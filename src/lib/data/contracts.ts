@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import {
   daysRemaining,
+  grossProfitTotal,
   marginHealth,
+  revenue,
   statusBand,
   todayInJakarta,
   type BusinessLine,
@@ -31,6 +33,12 @@ export interface ContractView {
   status: StatusBand
   margin: MarginHealth
   openCaseCount: number
+  /** Units sold over the term. Null when nobody has recorded one — not zero. */
+  volume: number | null
+  /** tarif × volume, or null when there is no volume to multiply by. */
+  revenue: number | null
+  /** (tarif − cost) × volume, on the same null-means-unknown rule. */
+  grossProfitTotal: number | null
   /** The term this contract held before it was last renewed, if it ever was. */
   previousEndDate: string | null
   /** When someone last recorded chasing this renewal. */
@@ -65,6 +73,13 @@ const toView = (
     status: statusBand(daysLeft),
     margin: marginHealth(Number(row.tarif), Number(row.cost), Number(row.min_gpm_target)),
     openCaseCount: openCaseCounts.get(row.customer_id) ?? 0,
+    volume: row.volume === null ? null : Number(row.volume),
+    revenue: revenue(Number(row.tarif), row.volume === null ? null : Number(row.volume)),
+    grossProfitTotal: grossProfitTotal(
+      Number(row.tarif),
+      Number(row.cost),
+      row.volume === null ? null : Number(row.volume),
+    ),
     previousEndDate: row.previous_end_date,
     followedUpAt: row.followed_up_at,
     updatedAt: row.updated_at,
@@ -141,6 +156,9 @@ export interface PortfolioSummary {
   averageGpm: number
   belowTarget: number
   byStatus: Record<StatusBand, number>
+  /** Revenue over the contracts that carry a volume, and how many that is. */
+  totalRevenue: number
+  withVolume: number
 }
 
 export const summarise = (contracts: ContractView[]): PortfolioSummary => {
@@ -164,5 +182,9 @@ export const summarise = (contracts: ContractView[]): PortfolioSummary => {
     averageGpm: total > 0 ? gpmSum / total : 0,
     belowTarget: contracts.filter((c) => !c.margin.meetsTarget).length,
     byStatus,
+    // Only contracts with a recorded volume contribute. The count travels with the
+    // total so the figure is never read as covering the whole book when it does not.
+    totalRevenue: contracts.reduce((sum, c) => sum + (c.revenue ?? 0), 0),
+    withVolume: contracts.filter((c) => c.revenue !== null).length,
   }
 }

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { AlertTriangle, FileText, Percent, Target, TimerReset } from 'lucide-react'
+import { AlertTriangle, FileText, Percent, Target, TimerReset, Wallet } from 'lucide-react'
 
 import { CompositionBar, ExpiryTimeline, MarginHistogram, StatusDonut } from '@/components/dashboard/charts'
 import { StatCard } from '@/components/dashboard/stat-card'
@@ -13,7 +13,7 @@ import {
   statusDistribution,
 } from '@/lib/data/analytics'
 import { listContracts, summarise } from '@/lib/data/contracts'
-import { formatPercent } from '@/lib/domain'
+import { formatPercent, formatRupiahCompact } from '@/lib/domain'
 
 export const metadata = { title: 'Dashboard — G-CME' }
 
@@ -48,7 +48,7 @@ export default async function DashboardPage() {
 
       {/* Every figure below is computed from exactly the rows this session can see,
           so they always agree with the table further down the page. */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
         <StatCard
           label="Total Kontrak"
           value={String(summary.totalContracts)}
@@ -81,6 +81,20 @@ export default async function DashboardPage() {
           keterangan="terhadap target masing-masing"
           icon={Target}
           tone={summary.belowTarget > 0 ? 'bad' : 'good'}
+        />
+        {/* Only contracts carrying a volume can have a revenue, so the card says how
+            much of the book it covers rather than implying it covers all of it. */}
+        <StatCard
+          label="Total Pendapatan"
+          value={
+            summary.withVolume === 0 ? '—' : formatRupiahCompact(summary.totalRevenue)
+          }
+          keterangan={
+            summary.withVolume === 0
+              ? 'belum ada volume tercatat'
+              : `dari ${summary.withVolume} dari ${summary.totalContracts} kontrak bervolume`
+          }
+          icon={Wallet}
         />
       </div>
 

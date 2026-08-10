@@ -35,6 +35,10 @@ export const updateContract = async (
   const tarif = parseAmount(formData.get('tarif'))
   const cost = parseAmount(formData.get('cost'))
   const contractEndDate = String(formData.get('contract_end_date') ?? '')
+  // Blank clears the volume: "not recorded" has to stay reachable, or a mistyped
+  // figure could never be taken back and revenue would be permanently wrong.
+  const volumeRaw = String(formData.get('volume') ?? '').trim()
+  const volume = volumeRaw === '' ? null : parseAmount(volumeRaw)
   const acknowledgedBreach = formData.get('acknowledge_breach') === 'on'
 
   if (tarif === null || tarif <= 0) {
@@ -42,6 +46,13 @@ export const updateContract = async (
   }
   if (cost === null || cost < 0) {
     return { error: 'Cost tidak boleh negatif.', warning: null, ok: false }
+  }
+  if (volume !== null && volume <= 0) {
+    return {
+      error: 'Volume harus lebih besar dari nol, atau dikosongkan.',
+      warning: null,
+      ok: false,
+    }
   }
   if (cost >= tarif) {
     return {
@@ -92,7 +103,7 @@ export const updateContract = async (
 
   const { data, error } = await supabase
     .from('contracts')
-    .update({ tarif, cost, contract_end_date: contractEndDate })
+    .update({ tarif, cost, contract_end_date: contractEndDate, volume })
     .eq('id', id)
     .select('id')
 

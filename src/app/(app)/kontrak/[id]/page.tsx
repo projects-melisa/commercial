@@ -11,6 +11,7 @@ import {
   formatPercentagePoints,
   formatRupiah,
   formatSisaHari,
+  formatVolume,
   grossProfit,
   formatTanggal,
 } from '@/lib/domain'
@@ -120,6 +121,20 @@ export default async function KontrakDetailPage({
             <Field label="Gross Profit">{formatRupiah(grossProfit(contract.tarif, contract.cost))}</Field>
             <Field label="GPM Saat Ini">
               <GpmIndicator margin={contract.margin} />
+            </Field>
+            <Field label="Volume">
+              {contract.volume === null ? (
+                <span className="font-normal text-gray-400">Belum dicatat</span>
+              ) : (
+                formatVolume(contract.volume, contract.businessLine)
+              )}
+            </Field>
+            <Field label="Pendapatan">
+              {contract.revenue === null ? (
+                <span className="font-normal text-gray-400">Perlu volume</span>
+              ) : (
+                formatRupiah(contract.revenue)
+              )}
             </Field>
             <Field label="Target GPM Kontrak Ini">{formatPercent(contract.minGpmTarget)}</Field>
             <Field label="Selisih terhadap Target">

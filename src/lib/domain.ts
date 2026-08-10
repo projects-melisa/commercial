@@ -188,3 +188,37 @@ export const formatSisaHari = (daysLeft: number): string => {
   if (daysLeft === 0) return 'Berakhir hari ini'
   return `${daysLeft} hari lagi`
 }
+
+// ─── Volume and revenue ──────────────────────────────────────────────────────
+
+/**
+ * What a tarif is charged per, by line. The workbook prices Ground Handling per
+ * handling, Cargo per kg and Ancillary as a flat fee, so the unit follows the business
+ * line rather than needing a column of its own.
+ */
+export const VOLUME_UNITS: Record<BusinessLine, string> = {
+  'Ground Handling': 'penanganan',
+  'Cargo & Warehouse': 'kg',
+  'Ancillary Business': 'layanan',
+}
+
+/**
+ * Revenue for the contract's term, or null when no volume has been recorded.
+ *
+ * Null rather than zero, deliberately: "nobody has entered a volume" and "this
+ * contract earns nothing" are different facts, and totalling them together would
+ * understate the book while looking authoritative.
+ */
+export const revenue = (tarif: number, volume: number | null): number | null =>
+  volume === null ? null : tarif * volume
+
+/** Gross profit in Rupiah for the term, on the same null-means-unknown rule. */
+export const grossProfitTotal = (
+  tarif: number,
+  cost: number,
+  volume: number | null,
+): number | null => (volume === null ? null : (tarif - cost) * volume)
+
+/** Volume in Indonesian convention, with the unit its line is priced in. */
+export const formatVolume = (volume: number, businessLine: BusinessLine): string =>
+  `${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(volume)} ${VOLUME_UNITS[businessLine]}`

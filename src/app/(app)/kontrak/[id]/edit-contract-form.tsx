@@ -6,7 +6,7 @@ import { AlertTriangle, Check, Loader2, Pencil, X } from 'lucide-react'
 
 import { updateContract, type EditContractState } from '@/app/(app)/kontrak/[id]/actions'
 import type { ContractView } from '@/lib/data/contracts'
-import { formatPercent, gpm, meetsTarget } from '@/lib/domain'
+import { formatPercent, gpm, meetsTarget, VOLUME_UNITS } from '@/lib/domain'
 
 const SaveButton = () => {
   const { pending } = useFormStatus()
@@ -39,6 +39,7 @@ export const EditContractForm = ({ contract }: { contract: ContractView }) => {
   const tarifId = useId()
   const costId = useId()
   const dateId = useId()
+  const volumeId = useId()
 
   const previewGpm = gpm(Number(tarif) || 0, Number(cost) || 0)
   const previewBreaches = !meetsTarget(previewGpm, contract.minGpmTarget)
@@ -72,7 +73,7 @@ export const EditContractForm = ({ contract }: { contract: ContractView }) => {
 
       <input type="hidden" name="id" value={contract.id} />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
         <div>
           <label htmlFor={tarifId} className="mb-1.5 block text-xs font-semibold text-gray-700">
             Tarif (Rp)
@@ -102,6 +103,21 @@ export const EditContractForm = ({ contract }: { contract: ContractView }) => {
             required
             value={cost}
             onChange={(event) => setCost(event.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          />
+        </div>
+        <div>
+          <label htmlFor={volumeId} className="mb-1.5 block text-xs font-semibold text-gray-700">
+            Volume ({VOLUME_UNITS[contract.businessLine]})
+          </label>
+          <input
+            id={volumeId}
+            name="volume"
+            type="number"
+            min="1"
+            step="1"
+            defaultValue={contract.volume ?? ''}
+            placeholder="kosongkan bila belum diketahui"
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
           />
         </div>

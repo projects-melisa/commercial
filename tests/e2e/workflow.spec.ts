@@ -280,3 +280,31 @@ test.describe('reminders and notifications', () => {
     }
   })
 })
+
+test.describe('volume and revenue', () => {
+  test('recording a volume turns tarif into revenue, and totals it', async ({ page }) => {
+    await signIn(page, PERSONAS.commercial.email)
+    await page.goto('/kontrak')
+    await page.getByRole('link', { name: 'Samudera Cold Chain' }).click()
+
+    // Before a volume there is no revenue — not a zero, which would understate the
+    // book while looking like a real figure.
+    await expect(page.getByText('Perlu volume')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Ubah Kontrak' }).click()
+    const tarif = Number(await page.getByLabel(/^Tarif/).inputValue())
+    await page.getByLabel(/^Volume/).fill('1000')
+    await page.getByRole('button', { name: 'Simpan Perubahan' }).click()
+    await expect(page.getByText('Perubahan tersimpan.')).toBeVisible()
+
+    await page.reload()
+    // Revenue is tarif × volume, rendered in full Rupiah.
+    const expected = new Intl.NumberFormat('id-ID').format(tarif * 1000)
+    await expect(page.getByText(`Rp ${expected}`).first()).toBeVisible()
+
+    // And the dashboard totals it over the contracts that have one.
+    await page.goto('/')
+    await expect(page.locator('p', { hasText: /^Total Pendapatan$/ })).toBeVisible()
+    await expect(page.getByText(/dari 1 dari 20 kontrak bervolume/)).toBeVisible()
+  })
+})

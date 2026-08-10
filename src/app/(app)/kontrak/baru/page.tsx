@@ -40,6 +40,7 @@ const createContract = async (formData: FormData): Promise<void> => {
     source_end_date: endDate,
     tarif: Number(formData.get('tarif')),
     cost: Number(formData.get('cost')),
+    volume: formData.get('volume') ? Number(formData.get('volume')) : null,
     min_gpm_target: Number(formData.get('min_gpm_target')) / 100,
   })
   if (contractError) {
@@ -166,6 +167,12 @@ export default async function KontrakBaruPage({
               Cost (Rp) — harus lebih kecil dari tarif
             </label>
             <input id="cost" name="cost" type="number" min="0" step="1" required className={FIELD} />
+          </div>
+          <div>
+            <label htmlFor="volume" className={LABEL}>
+              Volume (opsional — tanpa ini tidak ada pendapatan)
+            </label>
+            <input id="volume" name="volume" type="number" min="1" step="1" className={FIELD} />
           </div>
           <div>
             <label htmlFor="min_gpm_target" className={LABEL}>
