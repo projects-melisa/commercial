@@ -51,6 +51,23 @@ const migrations = readdirSync(migrationsDir)
   .filter((name) => name.endsWith('.sql'))
   .sort()
 
+// A version is the numeric prefix, so two files sharing one are indistinguishable
+// here and only the first would ever be applied. Catch it now rather than discover it
+// as a half-migrated database.
+const byVersion = new Map<string, string[]>()
+for (const file of migrations) {
+  const version = file.split('_')[0]!
+  byVersion.set(version, [...(byVersion.get(version) ?? []), file])
+}
+const duplicates = [...byVersion.entries()].filter(([, files]) => files.length > 1)
+if (duplicates.length > 0) {
+  throw new Error(
+    `two migrations share a version, so one would never be applied:\n${duplicates
+      .map(([version, files]) => `  ${version}: ${files.join(', ')}`)
+      .join('\n')}`,
+  )
+}
+
 console.log(`Project ${projectRef} — ${migrations.length} migrations on disk\n`)
 
 await runSql(

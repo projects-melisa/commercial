@@ -1,0 +1,24 @@
+# Nothing here is needed to build or run the app, and all of it would otherwise be
+# uploaded on every deploy. The two PDFs and the prototype's leftover image account
+# for roughly 3.8 MB on their own.
+
+# Source data and submission material
+Master_Database_Komersial_Compiled.xlsx
+*.pdf
+src/imports/
+
+# Database tooling — migrations run through the Supabase CLI, not through Vercel
+supabase/
+scripts/
+
+# Tests and their artefacts
+tests/
+playwright.config.ts
+vitest.rls.config.ts
+test-results/
+playwright-report/
+
+# Documentation
+docs/
+*.md
+!README.md

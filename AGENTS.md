@@ -48,6 +48,10 @@ password is the same for all of them and the sign-in screen offers a picker.
   expiry reminders. Deno, not Node: excluded from the app's tsconfig.
 - `src/lib/sheets/mirror.ts` — the Sheets payload shape, kept apart from the writing
   so it can be inspected without a Google account.
+- `src/lib/sheets/sync.ts` — the writing itself, shared by `pnpm sheets:sync` and the
+  scheduled `/api/sheets/sync` endpoint.
+- `docs/deployment.md` — the deployment runbook, including the Vault secrets the
+  scheduled jobs read.
 
 ## Things that will bite you
 
@@ -78,6 +82,14 @@ and `tests/rls/reminders.test.ts` guards it.
 **Reminder email is idempotent separately from reminder selection.** Selection keys
 on `(recipient, contract, milestone)`; delivery keys on `notifications.emailed_at`.
 A failed SMTP hop therefore delays an email rather than losing the notification.
+
+**Migrations are versioned by their numeric prefix.** Two files sharing one means
+only the first is ever applied; `pnpm deploy:db` now refuses rather than half-migrate.
+
+**Vercel gets real secrets, despite most of the app needing none.** The pages read
+only the two `NEXT_PUBLIC_` variables, but `/api/sheets/sync` holds the service-role
+key and the Google service account, because it mirrors the whole portfolio on a
+schedule. See `docs/deployment.md`.
 
 **`.sr-only-text` is `position: absolute`.** Any horizontal scroll container holding
 one needs `relative` on it, or the visually-hidden text resolves against the initial

@@ -2,6 +2,7 @@ import { Settings, ShieldCheck } from 'lucide-react'
 
 import { requireProfile } from '@/lib/auth'
 import { listContracts } from '@/lib/data/contracts'
+import { getLastSheetSync } from '@/lib/data/notifications'
 import { formatPercent, REMINDER_MILESTONES } from '@/lib/domain'
 
 export const metadata = { title: 'Pengaturan — G-CME' }
@@ -16,6 +17,7 @@ const BANDS = [
 export default async function PengaturanPage() {
   const profile = await requireProfile()
   const contracts = await listContracts()
+  const lastSync = await getLastSheetSync()
 
   // The most recent change to any contract the caller can see — how current the
   // figures on screen actually are.
@@ -152,6 +154,32 @@ export default async function PengaturanPage() {
           tanggal impor agar pipeline perpanjangan tetap terisi, dengan tanggal asli
           disimpan pada kolom <code>source_end_date</code>.
         </p>
+        <div className="mt-3 rounded-lg border border-gray-200 px-3 py-2.5">
+          <p className="text-xs font-semibold text-gray-700">Cermin Google Sheets</p>
+          {lastSync === null ? (
+            <p className="mt-0.5 text-xs text-gray-500">
+              Belum pernah disinkronkan. Sheet mungkin belum mencerminkan data terbaru.
+            </p>
+          ) : (
+            <p
+              className={`mt-0.5 text-xs ${
+                lastSync.status === 'ok' ? 'text-gray-500' : 'font-semibold text-red-700'
+              }`}
+            >
+              {lastSync.status === 'ok'
+                ? `Berhasil — ${lastSync.rows_written} baris pada `
+                : `GAGAL pada `}
+              {new Intl.DateTimeFormat('id-ID', {
+                dateStyle: 'long',
+                timeStyle: 'short',
+                timeZone: 'Asia/Jakarta',
+              }).format(new Date(lastSync.finished_at))}{' '}
+              WIB ({lastSync.trigger === 'schedule' ? 'terjadwal' : 'manual'}).
+              {lastSync.error ? ` ${lastSync.error}` : ''}
+            </p>
+          )}
+        </div>
+
         {lastUpdated ? (
           <p className="mt-2 text-xs text-gray-500">
             Perubahan data terakhir:{' '}

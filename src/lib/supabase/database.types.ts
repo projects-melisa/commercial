@@ -133,6 +133,7 @@ export type Database = {
           body: string
           contract_id: string | null
           created_at: string
+          emailed_at: string | null
           id: string
           milestone_key: string | null
           read: boolean
@@ -144,6 +145,7 @@ export type Database = {
           body: string
           contract_id?: string | null
           created_at?: string
+          emailed_at?: string | null
           id?: string
           milestone_key?: string | null
           read?: boolean
@@ -155,6 +157,7 @@ export type Database = {
           body?: string
           contract_id?: string | null
           created_at?: string
+          emailed_at?: string | null
           id?: string
           milestone_key?: string | null
           read?: boolean
@@ -270,6 +273,36 @@ export type Database = {
           },
         ]
       }
+      sheet_syncs: {
+        Row: {
+          error: string | null
+          finished_at: string
+          id: string
+          rows_written: number
+          started_at: string
+          status: Database["public"]["Enums"]["sheet_sync_status"]
+          trigger: Database["public"]["Enums"]["sheet_sync_trigger"]
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string
+          id?: string
+          rows_written?: number
+          started_at?: string
+          status: Database["public"]["Enums"]["sheet_sync_status"]
+          trigger: Database["public"]["Enums"]["sheet_sync_trigger"]
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string
+          id?: string
+          rows_written?: number
+          started_at?: string
+          status?: Database["public"]["Enums"]["sheet_sync_status"]
+          trigger?: Database["public"]["Enums"]["sheet_sync_trigger"]
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -283,6 +316,12 @@ export type Database = {
       caller_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      invoke_reminder_email: { Args: never; Returns: undefined }
+      invoke_sheets_sync: { Args: never; Returns: undefined }
+      mark_notification_emailed: {
+        Args: { notification_id: string }
+        Returns: undefined
       }
       send_expiry_reminders: {
         Args: { target_contract_id?: string }
@@ -304,6 +343,8 @@ export type Database = {
       notification_severity: "critical" | "warning" | "info"
       rfm_status: "HIGH" | "MEDIUM" | "LOW"
       scenario_status: "draft" | "pending" | "approved" | "rejected"
+      sheet_sync_status: "ok" | "failed"
+      sheet_sync_trigger: "schedule" | "manual"
       user_role: "vp" | "commercial"
     }
     CompositeTypes: {
@@ -451,6 +492,8 @@ export const Constants = {
       notification_severity: ["critical", "warning", "info"],
       rfm_status: ["HIGH", "MEDIUM", "LOW"],
       scenario_status: ["draft", "pending", "approved", "rejected"],
+      sheet_sync_status: ["ok", "failed"],
+      sheet_sync_trigger: ["schedule", "manual"],
       user_role: ["vp", "commercial"],
     },
   },

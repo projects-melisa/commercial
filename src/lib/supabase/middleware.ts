@@ -2,8 +2,15 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { supabasePublicKey, supabaseUrl } from '@/lib/supabase/keys'
 
-/** Routes reachable without a session. Everything else redirects to sign-in. */
-const PUBLIC_PATHS = ['/masuk', '/auth']
+/**
+ * Routes reachable without a session. Everything else redirects to sign-in.
+ *
+ * `/api/sheets/sync` is called by a pg_cron job, not by a person, so there is no
+ * session to redirect it to — without this it would be answered with a 307 to the
+ * sign-in page and the mirror would silently never refresh. It carries its own
+ * bearer-secret check and refuses outright when that secret is unset.
+ */
+const PUBLIC_PATHS = ['/masuk', '/auth', '/api/sheets/sync']
 
 const isPublic = (pathname: string): boolean =>
   PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))
