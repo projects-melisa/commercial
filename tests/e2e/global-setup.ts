@@ -62,7 +62,32 @@ const contractCount = async (): Promise<number | null> => {
  * back up — the reset itself having already succeeded. What the suite actually needs
  * is a reachable API serving the seeded rows, so that is what gets checked.
  */
+/**
+ * Whether the configured Supabase is the CLI's local stack.
+ *
+ * The suite starts by wiping the database and then writes to it throughout, which is
+ * fine against a disposable local stack and destructive against anything else.
+ */
+const isLocalStack = (): boolean => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+  return /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?/.test(url)
+}
+
 export default async function globalSetup(): Promise<void> {
+  if (!isLocalStack() && process.env.E2E_ALLOW_REMOTE_RESET !== 'true') {
+    throw new Error(
+      [
+        `NEXT_PUBLIC_SUPABASE_URL points at ${process.env.NEXT_PUBLIC_SUPABASE_URL}, which is not`,
+        'the local stack. This suite resets the database before it runs and files scenarios',
+        'and contract edits while it runs, so pointing it at a hosted project would destroy',
+        'the seeded demo data.',
+        '',
+        'Run the tests against the local stack, or set E2E_ALLOW_REMOTE_RESET=true if you',
+        'genuinely mean to wipe the project this URL refers to.',
+      ].join('\n'),
+    )
+  }
+
   writeFunctionEnv()
 
   try {
