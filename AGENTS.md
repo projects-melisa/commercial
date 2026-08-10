@@ -13,6 +13,19 @@ pnpm install
 pnpm db:start      # local Supabase stack (needs Docker running)
 pnpm db:reset      # apply migrations + seed from the workbook
 pnpm dev           # http://localhost:8443
+pnpm functions:serve  # reminder Edge Function, for the email path
+```
+
+Copy `.env.example` to `.env.local` and fill it in. The Edge Function reads its own
+settings from `supabase/functions/.env.local`, which the e2e global setup writes for
+you if it is missing.
+
+Local email goes to the stack's Mailpit — inbox at http://127.0.0.1:54324. Nothing
+leaves the machine.
+
+```sh
+pnpm sheets:sync --dry-run   # print the mirror payload; needs no Google account
+pnpm sheets:sync             # write it, once GOOGLE_* are set
 ```
 
 `.env.local` points at the local stack. Its keys are the Supabase CLI's fixed
@@ -31,6 +44,10 @@ password is the same for all of them and the sign-in screen offers a picker.
   Nothing recomputes these locally.
 - `src/lib/supabase/database.types.ts` — **generated**. Regenerate with
   `supabase gen types typescript --local > src/lib/supabase/database.types.ts`.
+- `supabase/functions/send-reminders/` — selection, recording and email delivery for
+  expiry reminders. Deno, not Node: excluded from the app's tsconfig.
+- `src/lib/sheets/mirror.ts` — the Sheets payload shape, kept apart from the writing
+  so it can be inspected without a Google account.
 
 ## Things that will bite you
 
@@ -51,6 +68,17 @@ There is no global threshold, and code that assumes one is wrong.
 Perhatian 5 / Aman 9) whenever the demo is given. `source_end_date` keeps the
 workbook's original date.
 
+**The reminder Edge Function must call selection as the *caller*, not the service
+role.** `send_expiry_reminders` is `security definer`, so RLS does not apply inside
+it and it re-imposes the business line by hand. Invoking it with the service-role key
+on the manual path would make that check vacuous and turn the endpoint into a way
+around RLS. It forwards the caller's `Authorization` header for exactly this reason,
+and `tests/rls/reminders.test.ts` guards it.
+
+**Reminder email is idempotent separately from reminder selection.** Selection keys
+on `(recipient, contract, milestone)`; delivery keys on `notifications.emailed_at`.
+A failed SMTP hop therefore delays an email rather than losing the notification.
+
 **`.sr-only-text` is `position: absolute`.** Any horizontal scroll container holding
 one needs `relative` on it, or the visually-hidden text resolves against the initial
 containing block and drags the page sideways on mobile.
@@ -68,4 +96,9 @@ pnpm typecheck
 ```
 
 Both seams run against the local stack. `pnpm test:e2e` resets the database first
-(`tests/e2e/global-setup.ts`), because the specs write.
+(`tests/e2e/global-setup.ts`), because the specs write, and starts the reminder Edge
+Function alongside the app so the manual-reminder path is exercised for real —
+including an assertion that a message actually reached Mailpit.
+
+Live Gmail delivery and the Sheets mirror remain verified by inspection, as the spec
+says: both need third-party credentials that a test would have to fake.

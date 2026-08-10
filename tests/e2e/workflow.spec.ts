@@ -189,20 +189,39 @@ test.describe('the approval round trip', () => {
 })
 
 test.describe('reminders and notifications', () => {
-  test('a reminder can be sent on demand and lands in the notification centre', async ({
-    page,
-  }) => {
+  test('a reminder sent on demand is recorded and actually emailed', async ({ page, request }) => {
     await signIn(page, PERSONAS.groundHandling.email)
     await page.goto('/kritis')
 
     const entry = page.locator('li').filter({ hasText: 'Mengapa perlu perhatian:' }).first()
+    const customer = (await entry.locator('a').first().innerText()).trim()
+
     await entry.getByRole('button', { name: 'Kirim Reminder' }).click()
 
-    // Either it was sent now, or the same milestone was already sent — both are
-    // correct outcomes of an idempotent trigger, and neither is an error.
-    await expect(
-      entry.getByText(/Reminder terkirim|sudah pernah dikirim/),
-    ).toBeVisible()
+    // Either it went now, or the same milestone had already been sent — both are
+    // correct outcomes of an idempotent trigger, and neither is a failure.
+    await expect(entry.getByText(/Reminder terkirim|sudah pernah dikirim/)).toBeVisible()
+
+    // It reaches the notification centre either way.
+    await page.goto('/notifikasi')
+    await expect(page.getByText(customer).first()).toBeVisible()
+
+    /*
+     * And a real message reached a real SMTP server. This is the stack's own Mailpit,
+     * not Gmail — no third-party credentials are involved and nothing leaves the
+     * machine, so asserting it proves the delivery path rather than proving a mock.
+     * Every message must carry the non-production recipient override.
+     */
+    const inbox = await request.get('http://127.0.0.1:54324/api/v1/messages?limit=50')
+    const messages = (await inbox.json()) as {
+      messages_count: number
+      messages: { Subject: string; To: { Address: string }[] }[]
+    }
+
+    expect(messages.messages_count).toBeGreaterThan(0)
+    for (const message of messages.messages) {
+      expect(message.To.map((to) => to.Address)).toEqual(['demo-inbox@gapura.local'])
+    }
   })
 
   test('notifications can be filtered and marked read', async ({ page }) => {

@@ -39,7 +39,10 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
+  // Edge Functions run on Deno with their own globals and remote imports; they are
+  // typechecked by `supabase functions serve`, not by the app's TypeScript project.
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "supabase/functions"
   ]
 }

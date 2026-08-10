@@ -1,8 +1,34 @@
 import { execFileSync } from 'node:child_process'
+import { existsSync, writeFileSync } from 'node:fs'
 
 import { config } from 'dotenv'
 
 config({ path: '.env.local', quiet: true })
+
+const FUNCTION_ENV_PATH = 'supabase/functions/.env.local'
+
+/**
+ * The Edge Function's local settings, pointed at the stack's own Mailpit.
+ *
+ * Written rather than committed, because the file is a `.env` and committing one
+ * teaches the wrong habit even when it holds nothing secret. Nothing here leaves the
+ * machine: Mailpit accepts every message and delivers none.
+ */
+const writeFunctionEnv = (): void => {
+  if (existsSync(FUNCTION_ENV_PATH)) return
+  writeFileSync(
+    FUNCTION_ENV_PATH,
+    [
+      '# Generated for local runs. Mailpit inbox: http://127.0.0.1:54324',
+      'SMTP_HOST=host.docker.internal',
+      'SMTP_PORT=54325',
+      'SMTP_TLS=false',
+      'SMTP_FROM=G-CME <no-reply@gapura.local>',
+      'REMINDER_RECIPIENT_OVERRIDE=demo-inbox@gapura.local',
+      '',
+    ].join('\n'),
+  )
+}
 
 const SEEDED_CONTRACT_COUNT = 20
 
@@ -37,6 +63,8 @@ const contractCount = async (): Promise<number | null> => {
  * is a reachable API serving the seeded rows, so that is what gets checked.
  */
 export default async function globalSetup(): Promise<void> {
+  writeFunctionEnv()
+
   try {
     execFileSync('supabase', ['db', 'reset'], { stdio: 'inherit' })
   } catch {

@@ -42,12 +42,25 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: `pnpm build && pnpm start --port ${PORT}`,
-    url: baseURL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 240_000,
-    stdout: 'ignore',
-    stderr: 'pipe',
-  },
+  webServer: [
+    {
+      command: `pnpm build && pnpm start --port ${PORT}`,
+      url: baseURL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 240_000,
+      stdout: 'ignore',
+      stderr: 'pipe',
+    },
+    {
+      // The reminder button invokes this; without it the manual path would be
+      // exercised only as far as the network call and its failure branch.
+      command:
+        'supabase functions serve send-reminders --env-file supabase/functions/.env.local --no-verify-jwt',
+      url: 'http://127.0.0.1:54321/functions/v1/send-reminders',
+      reuseExistingServer: true,
+      timeout: 120_000,
+      stdout: 'ignore',
+      stderr: 'pipe',
+    },
+  ],
 })
