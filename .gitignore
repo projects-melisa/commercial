@@ -1,10 +1,13 @@
 node_modules/
+.next/
+out/
 dist/
 build/
 .cache/
 .env*
+!.env.example
 .vite/
-vite.config.*.timestamp-*
+next-env.d.ts
 *.tsbuildinfo
 *-debug.log*
 logs/
@@ -12,3 +15,13 @@ logs/
 .claude-replay.*
 .tmp-*
 .DS_Store
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
