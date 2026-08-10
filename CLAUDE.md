@@ -4,8 +4,7 @@
 
 ### Issue tracker
 
-GitHub Issues via the `gh` CLI. No remote exists yet — issues are drafted as
-markdown under `.scratch/issues/` and migrated on first push. See
+GitHub Issues on `projects-melisa/commercial`, via the `gh` CLI. See
 `docs/agents/issue-tracker.md`.
 
 ### Triage labels

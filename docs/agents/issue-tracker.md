@@ -13,21 +13,10 @@ Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all op
 
 Infer the repo from `git remote -v` — `gh` does this automatically when run inside a clone.
 
-## Interim: no remote yet
-
-This repo has no git remote. Until one exists, issues are **drafted locally** and
-migrated later:
-
-- Write each issue as `.scratch/issues/<nnn>-<kebab-title>.md`, numbered from `001`.
-- Put the triage label(s) in a `Labels:` line at the top of the body, using the
-  strings in `docs/agents/triage-labels.md`.
-- The body is the issue body verbatim — no extra wrapper — so migration is a
-  straight `gh issue create --body-file`.
-
-Once the remote exists: create the labels, push each file with
-`gh issue create --title "..." --body-file <file> --label "..."`, then delete
-`.scratch/issues/` and this section. GitHub is the tracker of record from that
-point on; the local folder is scaffolding, not a parallel tracker.
+The remote is `projects-melisa/commercial`. The repo owner is the
+`projects-melisa` GitHub account — several accounts are authenticated on this
+machine and the others have read-only access, so run
+`gh auth switch --user projects-melisa` if a write operation returns 403.
 
 ## Pull requests as a triage surface
 
