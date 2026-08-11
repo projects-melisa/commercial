@@ -46,7 +46,7 @@ export default async function KontrakDetailPage({
     <div className="space-y-5">
       <Link
         href="/kontrak"
-        className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-primary"
+        className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600 hover:text-primary"
       >
         <ArrowLeft size={15} aria-hidden="true" />
         Kembali ke daftar kontrak
@@ -61,7 +61,7 @@ export default async function KontrakDetailPage({
             <StatusBadge status={contract.status} />
             <RfmBadge status={contract.rfmStatus} />
           </div>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-600">
             {contract.customerId} · {contract.businessLine} · {contract.serviceType}
           </p>
         </div>

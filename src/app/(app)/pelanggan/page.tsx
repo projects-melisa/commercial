@@ -17,7 +17,7 @@ export default async function PelangganPage() {
     <div className="space-y-5">
       <header>
         <h1 className="text-xl font-extrabold text-gray-900 sm:text-2xl">Pelanggan</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-600">
           {contracts.length} pelanggan dalam cakupan Anda, masing-masing dengan satu kontrak.
         </p>
       </header>

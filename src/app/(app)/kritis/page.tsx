@@ -124,7 +124,7 @@ export default async function KritisPage() {
           <AlertTriangle className="text-amber-600" size={22} aria-hidden="true" />
           Kontrak Kritis
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-600">
           {total} kontrak mendekati atau melewati tanggal berakhir, diurutkan dari yang paling
           mendesak.
         </p>

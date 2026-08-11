@@ -71,7 +71,9 @@ export const ContractTable = ({
       <button
         type="button"
         onClick={() => toggleSort(sortBy)}
-        className="inline-flex items-center gap-1 font-semibold hover:text-primary"
+        // Negative margin grows the hit area into the cell's own padding, so the
+        // control clears the 24px floor without moving the header row.
+        className="-my-1.5 inline-flex items-center gap-1 py-1.5 font-semibold hover:text-primary"
         aria-label={`Urutkan berdasarkan ${label}`}
       >
         {label}
@@ -158,7 +160,7 @@ export const ContractTable = ({
           />
         </div>
       ) : (
-        <div className="relative overflow-x-auto">
+        <div className="scroll-hint relative overflow-x-auto">
           <table className="w-full min-w-[64rem] text-left text-sm">
             <caption className="sr-only-text">
               Daftar kontrak dalam cakupan Anda, {visible.length} baris.

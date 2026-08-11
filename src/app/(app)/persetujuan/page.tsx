@@ -34,7 +34,7 @@ export default async function PersetujuanPage({
           <CheckSquare className="text-primary" size={22} aria-hidden="true" />
           Antrean Persetujuan
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-600">
           {scenarios.length} skenario menunggu keputusan Anda.
         </p>
       </header>

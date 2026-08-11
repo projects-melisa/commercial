@@ -17,7 +17,7 @@ export default async function NotifikasiPage() {
           <Bell className="text-primary" size={22} aria-hidden="true" />
           Pusat Notifikasi
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-600">
           {notifications.length} notifikasi, {unread} belum dibaca.
         </p>
       </header>

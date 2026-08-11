@@ -57,6 +57,10 @@ const toView = (
   today: string,
 ): ContractView => {
   const daysLeft = daysRemaining(row.contract_end_date, today)
+  // `== null`, not `=== null`: a column the API omits arrives as undefined, and
+  // Number(undefined) is NaN, which spreads through revenue into the portfolio total
+  // and renders as "Rp NaN jt". Unknown has to stay null all the way through.
+  const volume = row.volume == null ? null : Number(row.volume)
   return {
     id: row.id,
     customerId: row.customer_id,
@@ -73,13 +77,9 @@ const toView = (
     status: statusBand(daysLeft),
     margin: marginHealth(Number(row.tarif), Number(row.cost), Number(row.min_gpm_target)),
     openCaseCount: openCaseCounts.get(row.customer_id) ?? 0,
-    volume: row.volume === null ? null : Number(row.volume),
-    revenue: revenue(Number(row.tarif), row.volume === null ? null : Number(row.volume)),
-    grossProfitTotal: grossProfitTotal(
-      Number(row.tarif),
-      Number(row.cost),
-      row.volume === null ? null : Number(row.volume),
-    ),
+    volume,
+    revenue: revenue(Number(row.tarif), volume),
+    grossProfitTotal: grossProfitTotal(Number(row.tarif), Number(row.cost), volume),
     previousEndDate: row.previous_end_date,
     followedUpAt: row.followed_up_at,
     updatedAt: row.updated_at,
@@ -143,6 +143,37 @@ export const listCasesForCustomer = async (customerId: string): Promise<CaseRow[
     .order('status')
   if (error) throw new Error(`Gagal memuat kasus layanan: ${error.message}`)
   return data ?? []
+}
+
+/**
+ * The same rows for a whole page's worth of customers, in one round trip. Reports used
+ * to call the single-customer query once per contract, which is one query per row of a
+ * summary table and grows with the book.
+ *
+ * Like every other query here it carries no business-line filter — RLS decides what
+ * comes back, and `.in()` narrows only by the customers actually asked for.
+ */
+export const listCasesForCustomers = async (
+  customerIds: string[],
+): Promise<Map<string, CaseRow[]>> => {
+  const unique = [...new Set(customerIds)]
+  const byCustomer = new Map<string, CaseRow[]>()
+  if (unique.length === 0) return byCustomer
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('cases')
+    .select('*')
+    .in('customer_id', unique)
+    .order('status')
+  if (error) throw new Error(`Gagal memuat kasus layanan: ${error.message}`)
+
+  for (const row of data ?? []) {
+    const existing = byCustomer.get(row.customer_id)
+    if (existing) existing.push(row)
+    else byCustomer.set(row.customer_id, [row])
+  }
+  return byCustomer
 }
 
 /**

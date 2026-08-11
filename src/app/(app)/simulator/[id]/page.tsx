@@ -23,7 +23,7 @@ export default async function SimulatorPage({ params }: { params: Promise<{ id: 
     <div className="space-y-5">
       <Link
         href={`/kontrak/${contract.id}`}
-        className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-primary"
+        className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600 hover:text-primary"
       >
         <ArrowLeft size={15} aria-hidden="true" />
         Kembali ke detail kontrak
@@ -36,7 +36,7 @@ export default async function SimulatorPage({ params }: { params: Promise<{ id: 
           </h1>
           <StatusBadge status={contract.status} />
         </div>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-600">
           {contract.businessLine} · {contract.serviceType} · angka kontrak dimuat otomatis,
           target margin kontrak ini {formatPercent(contract.minGpmTarget, 0)}.
         </p>

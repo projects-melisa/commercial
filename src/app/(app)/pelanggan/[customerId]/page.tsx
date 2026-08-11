@@ -78,7 +78,7 @@ export default async function PelangganDetailPage({
     <div className="space-y-5">
       <Link
         href="/pelanggan"
-        className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-primary"
+        className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600 hover:text-primary"
       >
         <ArrowLeft size={15} aria-hidden="true" />
         Kembali ke daftar pelanggan
@@ -92,7 +92,7 @@ export default async function PelangganDetailPage({
           <RfmBadge status={contract.rfmStatus} />
           <StatusBadge status={contract.status} />
         </div>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-600">
           {contract.customerId} · {contract.businessLine} · {contract.serviceType}
         </p>
       </header>

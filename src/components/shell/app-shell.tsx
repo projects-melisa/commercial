@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Building2, LogOut, Menu, X } from 'lucide-react'
@@ -31,7 +31,17 @@ export const AppShell = ({
 }) => {
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
+  const drawerRef = useRef<HTMLDialogElement>(null)
   const items = navItemsFor(profile.role)
+
+  // showModal() is what moves focus into the drawer and makes the page behind it
+  // inert; close() is idempotent, so Escape closing it natively is not a special case.
+  useEffect(() => {
+    const drawer = drawerRef.current
+    if (!drawer) return
+    if (menuOpen && !drawer.open) drawer.showModal()
+    else if (!menuOpen && drawer.open) drawer.close()
+  }, [menuOpen])
 
   const isActive = (href: string): boolean =>
     href === '/' ? pathname === '/' : pathname.startsWith(href)
@@ -53,7 +63,7 @@ export const AppShell = ({
             <item.icon size={17} aria-hidden="true" />
             <span className="flex-1">{item.label}</span>
             {item.href === '/notifikasi' && unreadCount > 0 ? (
-              <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+              <span className="rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
                 {unreadCount}
                 <span className="sr-only-text"> notifikasi belum dibaca</span>
               </span>
@@ -106,39 +116,47 @@ export const AppShell = ({
         {identity}
       </aside>
 
-      {/* Mobile drawer */}
-      {menuOpen ? (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <button
-            type="button"
-            aria-label="Tutup menu"
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setMenuOpen(false)}
-          />
-          <div className="relative flex h-full w-64 flex-col bg-gradient-to-b from-sidebar-from to-sidebar-to">
-            <div className="flex items-center justify-between px-4 py-4">
-              <p className="font-extrabold text-white">G-CME</p>
-              <button
-                type="button"
-                onClick={() => setMenuOpen(false)}
-                aria-label="Tutup menu"
-                className="rounded-lg p-1.5 text-white/80 hover:bg-white/10"
-              >
-                <X size={18} aria-hidden="true" />
-              </button>
-            </div>
-            {nav}
-            {identity}
+      {/* Mobile drawer. A closed <dialog> is display:none, so it costs no tab stops. */}
+      <dialog
+        ref={drawerRef}
+        className="drawer lg:hidden"
+        aria-label="Navigasi utama"
+        onClose={() => setMenuOpen(false)}
+        // A modal dialog is supposed to close itself on Escape, but the browser routes
+        // that through a close watcher that only behaves predictably when the dialog was
+        // opened under user activation. Handling the key here makes the escape hatch
+        // unconditional; both paths end at the same state, and close() is idempotent.
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') setMenuOpen(false)
+        }}
+        onClick={(event) => {
+          // Clicks on ::backdrop are dispatched to the dialog itself.
+          if (event.target === drawerRef.current) setMenuOpen(false)
+        }}
+      >
+        <div className="flex h-full flex-col bg-gradient-to-b from-sidebar-from to-sidebar-to">
+          <div className="flex items-center justify-between px-4 py-4">
+            <p className="font-extrabold text-white">G-CME</p>
+            <button
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              aria-label="Tutup menu navigasi"
+              className="rounded-lg p-1.5 text-white/80 hover:bg-white/10"
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
           </div>
+          {nav}
+          {identity}
         </div>
-      ) : null}
+      </dialog>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 lg:hidden">
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
-            aria-label="Buka menu navigasi"
+            aria-label={menuOpen ? 'Tutup menu navigasi' : 'Buka menu navigasi'}
             aria-expanded={menuOpen}
             className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
           >

@@ -53,10 +53,12 @@ export const EmptyState = ({
 export const ErrorState = ({
   judul = 'Gagal memuat data',
   keterangan,
+  kode,
   onRetry,
 }: {
   judul?: string
   keterangan: string
+  kode?: string
   onRetry: () => void
 }) => (
   <div
@@ -66,6 +68,7 @@ export const ErrorState = ({
     <AlertTriangle className="mb-3 text-red-500" size={32} aria-hidden="true" />
     <p className="text-sm font-semibold text-red-900">{judul}</p>
     <p className="mt-1 max-w-sm text-sm text-red-700">{keterangan}</p>
+    {kode ? <p className="mt-2 font-mono text-xs text-red-700">{kode}</p> : null}
     <button
       type="button"
       onClick={onRetry}

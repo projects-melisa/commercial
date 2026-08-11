@@ -36,7 +36,7 @@ export default async function PengaturanPage() {
           <Settings className="text-primary" size={22} aria-hidden="true" />
           Pengaturan
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-600">
           Identitas Anda dan aturan yang sedang berlaku di sistem ini.
         </p>
       </header>

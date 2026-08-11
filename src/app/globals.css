@@ -13,6 +13,16 @@
   --color-sidebar-from: #0f3d27;
   --color-sidebar-to: #1e6b42;
   --color-canvas: #f4f6f9;
+
+  /*
+   * Two palette steps are darkened rather than rewriting every call site, so new code
+   * cannot reintroduce the miss. Stock Tailwind measures 1.47:1 for gray-300 and
+   * 2.54:1 for gray-400 on white — both below the floor for the only jobs this
+   * codebase gives them: control borders (needs 3:1) and secondary text (needs 4.5:1).
+   * Neither step is used as a fill anywhere, so nothing else moves.
+   */
+  --color-gray-300: #858f9e; /* 3.27:1 on white, 3.02:1 on the canvas */
+  --color-gray-400: #6b7280; /* 4.83:1 on white, 4.47:1 on the canvas */
 }
 
 @layer base {
@@ -30,10 +40,17 @@
   /*
    * Every interactive element gets a visible focus ring. The prototype had none, and
    * without one the application cannot be operated from the keyboard at all.
+   *
+   * The ring is two-tone because the sidebar is nearly the same green as the primary:
+   * a plain primary ring measures 1.54:1 against that gradient, which is invisible.
+   * The white halo fills the outline's offset gap, so on dark surfaces the halo is
+   * what you see (12.2:1) and on light ones the primary ring is (7.6:1). One rule
+   * covers both instead of every dark surface needing its own override.
    */
   :focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
+    box-shadow: 0 0 0 2px #fff;
     border-radius: 4px;
   }
 
@@ -79,7 +96,13 @@
     transform: translateY(-1px);
   }
 
-  /* Visible only to screen readers, so meaning never rides on colour alone. */
+  /*
+   * Visible only to screen readers, so meaning never rides on colour alone.
+   *
+   * Hidden with clip-path, not the legacy `clip`. Tailwind's `not-sr-only` resets
+   * `clip-path` and never touches `clip`, so the skip link was laid out at the top of
+   * the page on focus and still painted nothing.
+   */
   .sr-only-text {
     position: absolute;
     width: 1px;
@@ -87,7 +110,7 @@
     padding: 0;
     margin: -1px;
     overflow: hidden;
-    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
     white-space: nowrap;
     border-width: 0;
   }
@@ -109,21 +132,37 @@
   display: none;
 }
 
+/*
+ * The simulator's sliders are the product's primary interaction, so the control is a
+ * full 24px tall for the pointer even though the track it paints stays 6px. Sizing the
+ * input itself was giving a 6px drag target on a phone.
+ */
 input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
-  height: 6px;
-  border-radius: 3px;
+  height: 24px;
+  background: transparent;
   outline: none;
   cursor: pointer;
+}
+input[type='range']::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-gray-200);
+}
+input[type='range']::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-gray-200);
 }
 input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 18px;
   height: 18px;
+  margin-top: -6px; /* centres the 18px thumb on the 6px track */
   border-radius: 50%;
-  background: #1a5c3a;
+  background: var(--color-primary);
   cursor: pointer;
   box-shadow: 0 2px 6px rgb(26 92 58 / 0.4);
 }
@@ -132,12 +171,8 @@ input[type='range']::-moz-range-thumb {
   height: 18px;
   border: none;
   border-radius: 50%;
-  background: #1a5c3a;
+  background: var(--color-primary);
   cursor: pointer;
-}
-input[type='range']:focus-visible::-webkit-slider-thumb {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
 }
 
 @keyframes fadeIn {
@@ -173,10 +208,48 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   animation: shimmer 1.5s infinite;
 }
 
-.progress-bar {
-  transition: width 600ms ease;
-}
-
 tr.table-row:hover td {
   background-color: #f0fdf4;
+}
+
+/*
+ * The mobile drawer is a modal, so it is a real <dialog>: showModal() supplies the
+ * focus trap, Escape, and inert background that a div overlay has to reimplement.
+ * Only the sizing needs overriding — a modal dialog centres itself by default.
+ */
+dialog.drawer {
+  margin: 0;
+  width: 16rem;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+dialog.drawer::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+body:has(dialog[open]) {
+  overflow: hidden;
+}
+
+/*
+ * Tells you a table scrolls sideways before you try. Pure background trick: the two
+ * white panels are anchored to the content box and slide away as you scroll,
+ * uncovering the shadow underneath. No scroll listener, no JS.
+ */
+.scroll-hint {
+  background:
+    linear-gradient(to right, #fff 30%, rgb(255 255 255 / 0)) left center,
+    linear-gradient(to left, #fff 30%, rgb(255 255 255 / 0)) right center,
+    radial-gradient(farthest-side at 0 50%, rgb(0 0 0 / 0.14), rgb(0 0 0 / 0)) left center,
+    radial-gradient(farthest-side at 100% 50%, rgb(0 0 0 / 0.14), rgb(0 0 0 / 0)) right center;
+  background-repeat: no-repeat;
+  background-size:
+    36px 100%,
+    36px 100%,
+    14px 100%,
+    14px 100%;
+  background-attachment: local, local, scroll, scroll;
 }

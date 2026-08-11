@@ -15,7 +15,7 @@ export default async function SimulatorIndexPage() {
     <div className="space-y-4">
       <header>
         <h1 className="text-xl font-extrabold text-gray-900 sm:text-2xl">Simulator P&amp;L</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-600">
           Pilih kontrak untuk mensimulasikan tarif dan cost terhadap target marginnya sendiri.
         </p>
       </header>

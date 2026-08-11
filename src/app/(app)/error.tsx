@@ -21,13 +21,14 @@ export default function AppError({
     console.error('[G-CME]', error)
   }, [error])
 
+  // The thrown message is a database or network string, in English, aimed at whoever
+  // wrote the query. It goes to the console; the screen says what a Commercial user
+  // can act on. `digest` is the thread back to the server log.
   return (
     <ErrorState
-      keterangan={
-        error.message ||
-        'Terjadi kesalahan saat memuat data. Periksa koneksi Anda lalu coba lagi.'
-      }
+      keterangan="Terjadi kesalahan saat memuat data. Periksa koneksi Anda lalu coba lagi. Bila berulang, sebutkan kode berikut kepada tim teknis."
       onRetry={reset}
+      kode={error.digest}
     />
   )
 }

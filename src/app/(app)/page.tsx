@@ -41,14 +41,17 @@ export default async function DashboardPage() {
         <h1 className="text-xl font-extrabold text-gray-900 sm:text-2xl">
           Selamat datang, {profile.nama}
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-600">
           Ringkasan portofolio untuk {scopeLabel} — {summary.totalContracts} kontrak.
         </p>
       </header>
 
       {/* Every figure below is computed from exactly the rows this session can see,
           so they always agree with the table further down the page. */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
+      {/* Six across only once there is room for it. At xl the cards were narrow enough
+          that a two-word label wrapped to three lines and dropped its value out of line
+          with its neighbours. */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
         <StatCard
           label="Total Kontrak"
           value={String(summary.totalContracts)}

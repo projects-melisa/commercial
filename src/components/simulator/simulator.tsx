@@ -88,7 +88,7 @@ export const Simulator = ({
               step={Math.max(1, round(contract.tarif / 500))}
               value={tarif}
               onChange={(event) => setTarif(Number(event.target.value))}
-              className="w-full bg-gray-200"
+              className="w-full"
               aria-valuetext={formatRupiah(tarif)}
             />
             <p className="mt-1 text-xs text-gray-400">
@@ -111,7 +111,7 @@ export const Simulator = ({
               step={Math.max(1, round(contract.cost / 500))}
               value={cost}
               onChange={(event) => setCost(Number(event.target.value))}
-              className="w-full bg-gray-200"
+              className="w-full"
               aria-valuetext={formatRupiah(cost)}
             />
             <p className="mt-1 text-xs text-gray-400">Semula {formatRupiah(contract.cost)}</p>

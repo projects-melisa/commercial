@@ -70,7 +70,7 @@ export default async function KontrakBaruPage({
     <div className="space-y-5">
       <Link
         href="/kontrak"
-        className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-primary"
+        className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600 hover:text-primary"
       >
         <ArrowLeft size={15} aria-hidden="true" />
         Kembali ke daftar kontrak
@@ -81,7 +81,7 @@ export default async function KontrakBaruPage({
           <Plus className="text-primary" size={22} aria-hidden="true" />
           Kontrak Baru
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-600">
           Pelanggan dan kontraknya dibuat bersama — satu pelanggan, satu kontrak.
         </p>
       </header>

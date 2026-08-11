@@ -17,7 +17,7 @@ export default async function KontrakPage() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
         <h1 className="text-xl font-extrabold text-gray-900 sm:text-2xl">Daftar Kontrak</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-600">
           {profile.business_line
             ? `${contracts.length} kontrak pada lini ${profile.business_line}.`
             : `${contracts.length} kontrak di seluruh lini bisnis.`}

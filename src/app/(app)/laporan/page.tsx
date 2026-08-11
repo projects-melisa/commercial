@@ -12,7 +12,7 @@ import {
   performanceByBusinessLine,
   statusDistribution,
 } from '@/lib/data/analytics'
-import { listCasesForCustomer, listContracts } from '@/lib/data/contracts'
+import { listCasesForCustomers, listContracts } from '@/lib/data/contracts'
 import { formatPercent } from '@/lib/domain'
 
 export const metadata = { title: 'Laporan — G-CME' }
@@ -35,21 +35,17 @@ export default async function LaporanPage() {
   const perLine = performanceByBusinessLine(contracts)
   const rfmComposition = countBy(contracts, (c) => c.rfmStatus)
 
-  // Case summary by status and business line.
-  const caseLists = await Promise.all(
-    contracts.map(async (contract) => ({
-      businessLine: contract.businessLine,
-      cases: await listCasesForCustomer(contract.customerId),
-    })),
-  )
+  // Case summary by status and business line. Counted per contract, as before, so a
+  // customer holding two contracts still contributes to both of their lines.
+  const casesByCustomer = await listCasesForCustomers(contracts.map((c) => c.customerId))
   const caseSummary = new Map<string, { open: number; closed: number }>()
-  for (const { businessLine, cases } of caseLists) {
-    const entry = caseSummary.get(businessLine) ?? { open: 0, closed: 0 }
-    for (const serviceCase of cases) {
+  for (const contract of contracts) {
+    const entry = caseSummary.get(contract.businessLine) ?? { open: 0, closed: 0 }
+    for (const serviceCase of casesByCustomer.get(contract.customerId) ?? []) {
       if (serviceCase.status === 'OPEN') entry.open += 1
       else entry.closed += 1
     }
-    caseSummary.set(businessLine, entry)
+    caseSummary.set(contract.businessLine, entry)
   }
 
   return (
@@ -60,7 +56,7 @@ export default async function LaporanPage() {
             <BarChart2 className="text-primary" size={22} aria-hidden="true" />
             Laporan &amp; Analitik
           </h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-600">
             {profile.business_line
               ? `Lini ${profile.business_line} saja — sesuai hak akses Anda.`
               : 'Seluruh lini bisnis.'}
@@ -82,7 +78,7 @@ export default async function LaporanPage() {
 
       <section className="rounded-xl border border-gray-200 bg-white p-5">
         <h2 className="mb-4 text-sm font-bold text-gray-900">GPM Setiap Kontrak vs Targetnya</h2>
-        <div className="relative overflow-x-auto">
+        <div className="scroll-hint relative overflow-x-auto">
           <table className="w-full min-w-[40rem] text-left text-sm">
             <thead className="border-b border-gray-200 text-xs text-gray-500">
               <tr>
