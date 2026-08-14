@@ -1,24 +1,30 @@
 # Nothing here is needed to build or run the app, and all of it would otherwise be
 # uploaded on every deploy. The two PDFs and the prototype's leftover image account
 # for roughly 3.8 MB on their own.
+#
+# This file has .gitignore semantics, so every entry naming a directory at the repo
+# root needs the leading slash. Without it, `supabase/` also matched
+# `src/lib/supabase/` and stripped the app's own Supabase clients out of the deploy —
+# a build that only fails on Vercel, because locally the files are still there.
+# The two globs below are unanchored on purpose.
 
 # Source data and submission material
-Master_Database_Komersial_Compiled.xlsx
+/Master_Database_Komersial_Compiled.xlsx
 *.pdf
-src/imports/
+/src/imports/
 
 # Database tooling — migrations run through the Supabase CLI, not through Vercel
-supabase/
-scripts/
+/supabase/
+/scripts/
 
 # Tests and their artefacts
-tests/
-playwright.config.ts
-vitest.rls.config.ts
-test-results/
-playwright-report/
+/tests/
+/playwright.config.ts
+/vitest.rls.config.ts
+/test-results/
+/playwright-report/
 
 # Documentation
-docs/
+/docs/
 *.md
 !README.md
