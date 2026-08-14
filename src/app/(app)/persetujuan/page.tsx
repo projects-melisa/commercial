@@ -13,7 +13,7 @@ import {
   meetsTarget,
 } from '@/lib/domain'
 
-export const metadata = { title: 'Persetujuan — G-CME' }
+export const metadata = { title: 'Persetujuan — Gapura Commercial' }
 
 export default async function PersetujuanPage({
   searchParams,

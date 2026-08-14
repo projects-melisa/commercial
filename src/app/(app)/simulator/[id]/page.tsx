@@ -4,12 +4,12 @@ import { ArrowLeft } from 'lucide-react'
 
 import { SimulatorPanel } from '@/app/(app)/simulator/[id]/simulator-panel'
 import { StatusBadge } from '@/components/ui/badges'
-import { requireProfile } from '@/lib/auth'
+import { canEditContracts, requireProfile } from '@/lib/auth'
 import { getContract } from '@/lib/data/contracts'
 import { listScenariosForContract } from '@/lib/data/scenarios'
-import { formatPercent } from '@/lib/domain'
+import { formatTarget } from '@/lib/domain'
 
-export const metadata = { title: 'Simulator P&L — G-CME' }
+export const metadata = { title: 'Simulator P&L — Gapura Commercial' }
 
 export default async function SimulatorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -38,16 +38,16 @@ export default async function SimulatorPage({ params }: { params: Promise<{ id: 
         </div>
         <p className="mt-1 text-sm text-gray-600">
           {contract.businessLine} · {contract.serviceType} · angka kontrak dimuat otomatis,
-          target margin kontrak ini {formatPercent(contract.minGpmTarget, 0)}.
+          target margin kontrak ini {formatTarget(contract.minGpmTarget, 0)}.
         </p>
       </header>
 
       <SimulatorPanel
         contract={contract}
         scenarios={scenarios}
-        // A VP monitors and approves; proposing pricing is Commercial's job, and the
-        // insert policy would refuse it regardless of what is shown here.
-        canAuthor={profile.role === 'commercial'}
+        // A VP monitors and approves; proposing pricing belongs to whoever manages the
+        // contract, and the insert policy would refuse it regardless of what is shown.
+        canAuthor={canEditContracts(profile)}
       />
     </div>
   )

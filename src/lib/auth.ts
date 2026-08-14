@@ -28,7 +28,24 @@ export const requireProfile = async (): Promise<ProfileRow> => {
   return profile
 }
 
-/** Only Commercial users write. The VP role is monitoring and approval alone. */
-export const canEditContracts = (profile: ProfileRow): boolean => profile.role === 'commercial'
+/**
+ * Everyone but the VP writes. Stated as an exception rather than as a list of roles
+ * so it matches `caller_may_write()` in the database word for word: the VP role is
+ * monitoring and approval alone, and every other role manages contracts.
+ */
+export const canEditContracts = (profile: ProfileRow): boolean => profile.role !== 'vp'
 
 export const canDecideScenarios = (profile: ProfileRow): boolean => profile.role === 'vp'
+
+/**
+ * The caller's scope in words, as a noun phrase that reads after "untuk" or "pada".
+ *
+ * Station first: a GM Cabang carries no business line because they cover every line
+ * at their own airport, so leading with the line would say the opposite of what the
+ * policies do. Both dimensions are named when a profile happens to carry both.
+ */
+export const scopeLabel = (profile: ProfileRow): string => {
+  const lini = profile.business_line ? `lini ${profile.business_line}` : null
+  if (profile.cabang) return lini ? `${lini} di Cabang ${profile.cabang}` : `Cabang ${profile.cabang}`
+  return lini ?? 'seluruh lini bisnis'
+}

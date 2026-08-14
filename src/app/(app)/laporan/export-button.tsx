@@ -8,6 +8,7 @@ const COLUMNS = [
   'CustomerID',
   'CustomerName',
   'BusinessLine',
+  'Cabang',
   'ServiceType',
   'ContractEndDate',
   'SisaHari',
@@ -23,7 +24,7 @@ const COLUMNS = [
   'KasusTerbuka',
 ] as const
 
-const escapeCsv = (value: string | number): string => {
+const escapeCsv = (value: string | number | null): string => {
   const text = String(value)
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
 }
@@ -40,6 +41,7 @@ export const ExportButton = ({ contracts }: { contracts: ContractView[] }) => {
       contract.customerId,
       contract.customerName,
       contract.businessLine,
+      contract.cabang ?? '',
       contract.serviceType,
       contract.contractEndDate,
       contract.daysLeft,
@@ -50,8 +52,8 @@ export const ExportButton = ({ contracts }: { contracts: ContractView[] }) => {
       contract.volume ?? '',
       contract.revenue ?? '',
       contract.margin.gpm.toFixed(4),
-      contract.minGpmTarget.toFixed(4),
-      contract.margin.delta.toFixed(4),
+      contract.minGpmTarget?.toFixed(4) ?? '',
+      contract.margin.delta?.toFixed(4) ?? '',
       contract.openCaseCount,
     ])
 
@@ -62,7 +64,7 @@ export const ExportButton = ({ contracts }: { contracts: ContractView[] }) => {
 
     const link = document.createElement('a')
     link.href = url
-    link.download = `g-cme-laporan-${new Date().toISOString().slice(0, 10)}.csv`
+    link.download = `gapura-commercial-laporan-${new Date().toISOString().slice(0, 10)}.csv`
     link.click()
     URL.revokeObjectURL(url)
   }

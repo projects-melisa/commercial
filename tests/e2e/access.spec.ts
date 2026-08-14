@@ -3,7 +3,14 @@
  */
 import { expect, test } from '@playwright/test'
 
-import { contractRowCount, PERSONAS, signIn, signOut } from './personas.ts'
+import {
+  CONTRACTS_AT_CABANG,
+  contractRowCount,
+  PERSONAS,
+  signIn,
+  signOut,
+  TOTAL_CONTRACTS,
+} from './personas.ts'
 
 test.describe('signing in and out', () => {
   test('an unauthenticated visitor is sent to sign-in rather than a broken page', async ({
@@ -63,28 +70,52 @@ test.describe('signing in and out', () => {
 })
 
 test.describe('portfolio scope as seen in the interface', () => {
-  test('a Commercial user sees all 20 contracts across all three lines', async ({ page }) => {
+  test('a Commercial user sees every contract line across all three lines', async ({ page }) => {
     await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
 
-    expect(await contractRowCount(page)).toBe(20)
+    expect(await contractRowCount(page)).toBe(TOTAL_CONTRACTS)
 
     const lines = await page.locator('table tbody tr td:nth-child(2)').allInnerTexts()
     expect(new Set(lines.map((line) => line.trim()))).toEqual(
-      new Set(['Ground Handling', 'Cargo & Warehouse', 'Ancillary Business']),
+      new Set(['Ground Handling', 'Cargo Handling', 'Ancillary Business']),
     )
   })
 
-  test('a VP sees all 20 contracts across all three lines', async ({ page }) => {
+  test('a VP sees every contract line across all three lines', async ({ page }) => {
     await signIn(page, PERSONAS.vp.email)
     await page.goto('/kontrak')
 
-    expect(await contractRowCount(page)).toBe(20)
+    expect(await contractRowCount(page)).toBe(TOTAL_CONTRACTS)
 
     const lines = await page.locator('table tbody tr td:nth-child(2)').allInnerTexts()
     expect(new Set(lines.map((line) => line.trim()))).toEqual(
-      new Set(['Ground Handling', 'Cargo & Warehouse', 'Ancillary Business']),
+      new Set(['Ground Handling', 'Cargo Handling', 'Ancillary Business']),
     )
+  })
+
+  test('a GM Cabang sees only their own station, and is told so', async ({ page }) => {
+    await signIn(page, PERSONAS.cabang.email)
+    await page.goto('/kontrak')
+
+    expect(await contractRowCount(page)).toBe(CONTRACTS_AT_CABANG)
+    await expect(page.getByText(`Cabang ${PERSONAS.cabang.cabang}`).first()).toBeVisible()
+
+    // Every line is theirs within that station — the boundary is the airport, not
+    // the business line, and the two must not be confused on screen either.
+    const lines = await page.locator('table tbody tr td:nth-child(2)').allInnerTexts()
+    expect(new Set(lines.map((line) => line.trim()))).toEqual(
+      new Set(['Ground Handling', 'Cargo Handling', 'Ancillary Business']),
+    )
+  })
+
+  test('a GM Cabang keeps the editing rights Commercial has', async ({ page }) => {
+    await signIn(page, PERSONAS.cabang.email)
+    await page.goto('/kontrak')
+    await expect(page.getByRole('link', { name: 'Kontrak Baru' })).toBeVisible()
+
+    await page.locator('table tbody tr td:first-child a').first().click()
+    await expect(page.getByRole('button', { name: 'Ubah Kontrak' })).toBeVisible()
   })
 
   test('headline figures agree with the table beneath them', async ({ page }) => {
@@ -95,10 +126,10 @@ test.describe('portfolio scope as seen in the interface', () => {
       .locator('p', { hasText: /^Total Kontrak$/ })
       .locator('xpath=following-sibling::p[1]')
       .innerText()
-    expect(total.trim()).toBe('20')
+    expect(total.trim()).toBe(String(TOTAL_CONTRACTS))
 
     await page.goto('/kontrak')
-    expect(await contractRowCount(page)).toBe(20)
+    expect(await contractRowCount(page)).toBe(TOTAL_CONTRACTS)
   })
 
   test('a small result set fills the screen sensibly rather than looking broken', async ({
@@ -107,12 +138,12 @@ test.describe('portfolio scope as seen in the interface', () => {
     await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
 
-    // No seeded account is confined to one line any more, so the smallest scope the
-    // interface has to render well is reached by filtering. Ancillary Business is 5 of
-    // the 20 contracts — the same handful this used to check via a scoped login.
+    // No seeded account is confined to one line, so the smallest scope the interface
+    // has to render well is reached by filtering. Ancillary Business is 2 of the 15
+    // lines in the Sheet — a genuinely small result set.
     await page.getByLabel('Saring berdasarkan lini bisnis').selectOption('Ancillary Business')
 
-    expect(await contractRowCount(page)).toBe(5)
+    expect(await contractRowCount(page)).toBe(2)
     await expect(page.getByText('Tidak ada kontrak yang cocok')).toHaveCount(0)
     await expect(page.getByRole('table')).toBeVisible()
   })

@@ -6,7 +6,7 @@ import { AlertTriangle, Check, Loader2, Pencil, X } from 'lucide-react'
 
 import { updateContract, type EditContractState } from '@/app/(app)/kontrak/[id]/actions'
 import type { ContractView } from '@/lib/data/contracts'
-import { formatPercent, gpm, meetsTarget, VOLUME_UNITS } from '@/lib/domain'
+import { formatPercent, formatTarget, gpm, meetsTarget, VOLUME_UNITS } from '@/lib/domain'
 
 const SaveButton = () => {
   const { pending } = useFormStatus()
@@ -42,7 +42,9 @@ export const EditContractForm = ({ contract }: { contract: ContractView }) => {
   const volumeId = useId()
 
   const previewGpm = gpm(Number(tarif) || 0, Number(cost) || 0)
-  const previewBreaches = !meetsTarget(previewGpm, contract.minGpmTarget)
+  // A contract with no target cannot breach one, so there is nothing to warn about.
+  const previewBreaches =
+    contract.minGpmTarget !== null && !meetsTarget(previewGpm, contract.minGpmTarget)
 
   if (!open) {
     return (
@@ -141,7 +143,7 @@ export const EditContractForm = ({ contract }: { contract: ContractView }) => {
         <span className={previewBreaches ? 'font-bold text-red-700' : 'font-bold text-green-700'}>
           {formatPercent(previewGpm)}
         </span>{' '}
-        terhadap target kontrak ini {formatPercent(contract.minGpmTarget)}.
+        terhadap target kontrak ini {formatTarget(contract.minGpmTarget)}.
       </p>
 
       {state.warning ? (

@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { BUSINESS_LINES, RFM_STATUSES } from '@/lib/domain'
 import type { BusinessLine, RfmStatus } from '@/lib/domain'
 
-export const metadata = { title: 'Kontrak Baru — G-CME' }
+export const metadata = { title: 'Kontrak Baru — Gapura Commercial' }
 
 /**
  * Creates the customer and its contract together. They are 1:1 in the source data, so
@@ -34,6 +34,7 @@ const createContract = async (formData: FormData): Promise<void> => {
   const { error: contractError } = await supabase.from('contracts').insert({
     customer_id: customerId,
     business_line: formData.get('business_line') as BusinessLine,
+    cabang: String(formData.get('cabang') ?? '') || null,
     service_type: String(formData.get('service_type') ?? '').trim(),
     contract_end_date: endDate,
     // No workbook row behind a contract created here, so its own start is the source.
@@ -65,6 +66,17 @@ export default async function KontrakBaruPage({
   if (!canEditContracts(profile)) redirect('/kontrak')
 
   const { galat } = await searchParams
+
+  // A GM Cabang may only insert at their own station, so the list is theirs alone —
+  // offering the other eighty would be offering eighty refusals.
+  const supabase = await createClient()
+  // The error is kept, not discarded: a failed lookup used to render a `required`
+  // select with no options, which cannot be satisfied and explains nothing.
+  const stationQuery = profile.cabang
+    ? { data: null, error: null }
+    : await supabase.from('cabang').select('kode, nama, kota').order('kode')
+  const stations = stationQuery.data ?? []
+  const stationsUnavailable = !profile.cabang && (stationQuery.error !== null || stations.length === 0)
 
   return (
     <div className="space-y-5">
@@ -137,6 +149,43 @@ export default async function KontrakBaruPage({
                 </option>
               ))}
             </select>
+          </div>
+          <div>
+            <label htmlFor="cabang" className={LABEL}>
+              Cabang
+            </label>
+            {profile.cabang ? (
+              <>
+                <input type="hidden" name="cabang" value={profile.cabang} />
+                <input
+                  id="cabang"
+                  value={profile.cabang}
+                  readOnly
+                  aria-describedby="cabang-help"
+                  className={`${FIELD} bg-gray-50 text-gray-600`}
+                />
+                <p id="cabang-help" className="mt-1 text-xs text-gray-500">
+                  Cakupan Anda — kontrak hanya dapat dibuat di cabang ini.
+                </p>
+              </>
+            ) : stationsUnavailable ? (
+              <p
+                role="alert"
+                className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800"
+              >
+                Daftar cabang tidak dapat dimuat, sehingga kontrak baru belum bisa
+                disimpan. Muat ulang halaman ini, atau hubungi administrator bila
+                masalahnya berlanjut.
+              </p>
+            ) : (
+              <select id="cabang" name="cabang" required className={FIELD}>
+                {stations.map((station) => (
+                  <option key={station.kode} value={station.kode}>
+                    {station.kode} — {station.nama}, {station.kota}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           <div>
             <label htmlFor="service_type" className={LABEL}>

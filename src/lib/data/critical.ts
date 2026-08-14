@@ -27,9 +27,10 @@ const reasonFor = (contract: ContractView): string => {
     parts.push(`Kontrak berakhir dalam ${contract.daysLeft} hari`)
   }
 
-  if (!contract.margin.meetsTarget) {
+  // `=== false`: a contract with no target is not "below" one.
+  if (contract.margin.meetsTarget === false) {
     parts.push(
-      `GPM ${formatPercent(contract.margin.gpm)} di bawah target ${formatPercent(contract.minGpmTarget)}`,
+      `GPM ${formatPercent(contract.margin.gpm)} di bawah target ${formatPercent(contract.minGpmTarget!)}`,
     )
   }
   if (contract.openCaseCount > 0) {
@@ -51,9 +52,9 @@ const actionFor = (contract: ContractView): string => {
       : 'Konfirmasi apakah layanan masih berjalan, lalu ajukan perpanjangan atau tutup kontrak secara resmi.'
   }
 
-  if (!contract.margin.meetsTarget) {
-    const floor = minimumTarifForTarget(contract.cost, contract.minGpmTarget)
-    return `Buka simulator dan ajukan tarif minimal ${formatRupiah(floor)} agar memenuhi target ${formatPercent(contract.minGpmTarget)}.`
+  if (contract.margin.meetsTarget === false) {
+    const floor = minimumTarifForTarget(contract.cost, contract.minGpmTarget!)
+    return `Buka simulator dan ajukan tarif minimal ${formatRupiah(floor)} agar memenuhi target ${formatPercent(contract.minGpmTarget!)}.`
   }
 
   if (contract.openCaseCount > 0) {

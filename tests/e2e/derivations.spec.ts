@@ -72,10 +72,10 @@ test.describe('Rupiah across three orders of magnitude', () => {
   test('the contract list abbreviates only where it stays legible', async ({ page }) => {
     await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
-    // Narrowed to Cargo & Warehouse, whose tarifs are per kg. The Commercial user now
+    // Narrowed to Cargo Handling, whose tarifs are per kg. The Commercial user now
     // sees every line, and Ground Handling's millions legitimately do abbreviate — the
     // property under test is that the small per-kg figures are not swept up with them.
-    await page.getByLabel('Saring berdasarkan lini bisnis').selectOption('Cargo & Warehouse')
+    await page.getByLabel('Saring berdasarkan lini bisnis').selectOption('Cargo Handling')
 
     const tarifCells = await page.locator('table tbody tr td:nth-child(8)').allInnerTexts()
     expect(tarifCells.length).toBeGreaterThan(0)

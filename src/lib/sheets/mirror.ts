@@ -1,6 +1,17 @@
 /**
  * The Google Sheets mirror payload.
  *
+ * ⚠ The direction of travel has reversed and this has not caught up. The Sheet is now
+ * the source of truth — `scripts/lib/read-sheet.ts` reads it into the database — while
+ * this writes the database back over the Sheet, clearing each tab first. Running it
+ * today would overwrite the hand-maintained `Compiled_Contracts`, `CS_Data` and
+ * `CRM_Data` with a strictly older copy of themselves.
+ *
+ * The daily `g-cme-daily-sheets-mirror` cron has been unscheduled on the hosted
+ * project for that reason. `pnpm sheets:sync` and `/api/sheets/sync` still work and
+ * are still dangerous; they are left in place rather than deleted because removing a
+ * documented feature is a decision for whoever owns the spec.
+ *
  * Reproduces the source workbook's four sheets with identical headers — including
  * `Revenue_Data`'s duplication of tarif and cost, which the database drops on import
  * — so formulas and pivots built against the original workbook keep resolving.
@@ -41,7 +52,7 @@ export interface SheetPayload {
  */
 const REVENUE_BUSINESS_LINE: Record<string, string> = {
   'Ground Handling': 'Ground Handling',
-  'Cargo & Warehouse': 'CARGO & WAREHOUSING',
+  'Cargo Handling': 'CARGO & WAREHOUSING',
   'Ancillary Business': 'ANCILLARY BUSINESS',
 }
 

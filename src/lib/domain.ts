@@ -1,14 +1,16 @@
 /**
- * The derived vocabulary of G-CME.
+ * The derived vocabulary of Gapura Commercial.
  *
  * None of this is stored. GPM, days remaining, the status band and margin health are
  * computed from the contract row every time they are shown, so a badge and an email
  * can never disagree about the same contract.
  */
 
+// Named as the Google Sheet names them; the Sheet is the source of truth and calls
+// the middle one "Cargo Handling", not the workbook's "Cargo & Warehouse".
 export const BUSINESS_LINES = [
   'Ground Handling',
-  'Cargo & Warehouse',
+  'Cargo Handling',
   'Ancillary Business',
 ] as const
 export type BusinessLine = (typeof BUSINESS_LINES)[number]
@@ -17,7 +19,15 @@ export const RFM_STATUSES = ['HIGH', 'MEDIUM', 'LOW'] as const
 export type RfmStatus = (typeof RFM_STATUSES)[number]
 
 export type CaseStatus = 'OPEN' | 'CLOSED'
-export type UserRole = 'vp' | 'commercial'
+export type UserRole = 'vp' | 'commercial' | 'cabang'
+
+/** How each role is named on screen. */
+export const ROLE_LABELS: Record<UserRole, string> = {
+  vp: 'VP / Dirut DC',
+  commercial: 'Commercial',
+  cabang: 'GM Cabang',
+}
+
 export type ScenarioStatus = 'draft' | 'pending' | 'approved' | 'rejected'
 
 export const STATUS_BANDS = ['Aman', 'Perlu Perhatian', 'Kritis', 'Nonaktif'] as const
@@ -101,15 +111,28 @@ export const statusBand = (daysLeft: number): StatusBand => {
 export interface MarginHealth {
   /** Actual GPM as a fraction. */
   gpm: number
-  /** The contract's own Min_GPM_Target as a fraction. */
-  target: number
-  /** gpm - target. Negative means the contract is below its own target. */
-  delta: number
-  meetsTarget: boolean
+  /** The contract's own Min_GPM_Target as a fraction, or null when none is recorded. */
+  target: number | null
+  /** gpm - target, or null when there is no target to measure against. */
+  delta: number | null
+  /**
+   * Whether the margin clears its target — and null when there is no target.
+   *
+   * Three states, not two, and deliberately so: a contract nobody has set a target
+   * for has not passed and has not failed. Collapsing null to `false` would report a
+   * breach that was never defined, and to `true` would report health nobody verified.
+   * Every caller therefore has to say which of the two it means.
+   */
+  meetsTarget: boolean | null
 }
 
-export const marginHealth = (tarif: number, cost: number, target: number): MarginHealth => {
+export const marginHealth = (
+  tarif: number,
+  cost: number,
+  target: number | null,
+): MarginHealth => {
   const actual = gpm(tarif, cost)
+  if (target === null) return { gpm: actual, target: null, delta: null, meetsTarget: null }
   return {
     gpm: actual,
     target,
@@ -161,6 +184,17 @@ export const formatPercent = (fraction: number, digits = 1): string =>
     maximumFractionDigits: digits,
   }).format(fraction * 100)}%`
 
+/**
+ * A margin target for display, said plainly when there is none.
+ *
+ * The Sheet carries no `Min_GPM_Target` column, so most contracts now have no target
+ * at all. Rendering that as "0%" would claim every contract clears a zero floor; this
+ * says what is actually true.
+ */
+export const NO_TARGET_LABEL = 'belum ditetapkan'
+export const formatTarget = (target: number | null, digits = 1): string =>
+  target === null ? NO_TARGET_LABEL : formatPercent(target, digits)
+
 /** A signed fraction as percentage points: -0.009 → "-0,9 pp". */
 export const formatPercentagePoints = (fraction: number, digits = 1): string => {
   const points = fraction * 100
@@ -192,13 +226,13 @@ export const formatSisaHari = (daysLeft: number): string => {
 // ─── Volume and revenue ──────────────────────────────────────────────────────
 
 /**
- * What a tarif is charged per, by line. The workbook prices Ground Handling per
- * handling, Cargo per kg and Ancillary as a flat fee, so the unit follows the business
- * line rather than needing a column of its own.
+ * What a tarif is charged per, by line. Ground Handling is priced per handling, Cargo
+ * per kg and Ancillary as a flat fee, so the unit follows the business line rather
+ * than needing a column of its own.
  */
 export const VOLUME_UNITS: Record<BusinessLine, string> = {
   'Ground Handling': 'penanganan',
-  'Cargo & Warehouse': 'kg',
+  'Cargo Handling': 'kg',
   'Ancillary Business': 'layanan',
 }
 

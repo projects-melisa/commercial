@@ -1,4 +1,4 @@
--- Row-level security for G-CME.
+-- Row-level security for Gapura Commercial.
 --
 -- Scoping is enforced here rather than in the interface: a Cargo & Warehouse user
 -- querying for Ground Handling contracts gets nothing back, because those rows are

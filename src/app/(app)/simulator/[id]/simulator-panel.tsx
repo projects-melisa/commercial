@@ -7,7 +7,7 @@ import { saveScenario, submitScenario } from '@/app/(app)/simulator/[id]/actions
 import { Simulator } from '@/components/simulator/simulator'
 import type { ContractView } from '@/lib/data/contracts'
 import type { ScenarioView } from '@/lib/data/scenarios'
-import { formatPercent, formatRupiah, meetsTarget } from '@/lib/domain'
+import { formatPercent, formatTarget, formatRupiah, meetsTarget } from '@/lib/domain'
 
 const STATUS_LABEL = {
   draft: { text: 'Draft', className: 'bg-gray-100 text-gray-700' },
@@ -89,7 +89,11 @@ export const SimulatorPanel = ({
             {scenarios.map((scenario) => {
               const label = STATUS_LABEL[scenario.status]
               const scenarioGpm = Number(scenario.gpm)
-              const meets = meetsTarget(scenarioGpm, contract.minGpmTarget)
+              // Null target: the scenario is neither passing nor failing.
+              const meets =
+                contract.minGpmTarget === null
+                  ? null
+                  : meetsTarget(scenarioGpm, contract.minGpmTarget)
               return (
                 <li key={scenario.id} className="flex flex-wrap items-start gap-3 px-5 py-3.5">
                   <div className="min-w-0 flex-1">
@@ -97,10 +101,18 @@ export const SimulatorPanel = ({
                     <p className="mt-0.5 text-xs text-gray-500">
                       Tarif {formatRupiah(Number(scenario.proposed_tarif))} · Cost{' '}
                       {formatRupiah(Number(scenario.proposed_cost))} · GPM{' '}
-                      <span className={meets ? 'font-semibold text-green-700' : 'font-semibold text-red-700'}>
+                      <span
+                        className={
+                          meets === null
+                            ? 'font-semibold text-gray-700'
+                            : meets
+                              ? 'font-semibold text-green-700'
+                              : 'font-semibold text-red-700'
+                        }
+                      >
                         {formatPercent(scenarioGpm)}
                       </span>{' '}
-                      terhadap target {formatPercent(contract.minGpmTarget)}
+                      terhadap target {formatTarget(contract.minGpmTarget)}
                     </p>
                     <p className="mt-0.5 text-xs text-gray-400">oleh {scenario.authorName}</p>
                     {scenario.status === 'rejected' && scenario.rejection_reason ? (

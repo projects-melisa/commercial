@@ -9,6 +9,7 @@ import { getContract, listCasesForCustomer } from '@/lib/data/contracts'
 import {
   formatPercent,
   formatPercentagePoints,
+  formatTarget,
   formatRupiah,
   formatSisaHari,
   formatVolume,
@@ -16,7 +17,7 @@ import {
   formatTanggal,
 } from '@/lib/domain'
 
-export const metadata = { title: 'Detail Kontrak — G-CME' }
+export const metadata = { title: 'Detail Kontrak — Gapura Commercial' }
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div>
@@ -63,6 +64,7 @@ export default async function KontrakDetailPage({
           </div>
           <p className="mt-1 text-sm text-gray-600">
             {contract.customerId} · {contract.businessLine} · {contract.serviceType}
+            {contract.cabang ? ` · Cabang ${contract.cabang}` : ''}
           </p>
         </div>
 
@@ -136,15 +138,19 @@ export default async function KontrakDetailPage({
                 formatRupiah(contract.revenue)
               )}
             </Field>
-            <Field label="Target GPM Kontrak Ini">{formatPercent(contract.minGpmTarget)}</Field>
+            <Field label="Target GPM Kontrak Ini">{formatTarget(contract.minGpmTarget)}</Field>
             <Field label="Selisih terhadap Target">
-              <span className={contract.margin.meetsTarget ? 'text-green-700' : 'text-red-700'}>
-                {formatPercentagePoints(contract.margin.delta)}
-              </span>
+              {contract.margin.delta === null ? (
+                <span className="font-normal text-gray-400">Perlu target</span>
+              ) : (
+                <span className={contract.margin.meetsTarget ? 'text-green-700' : 'text-red-700'}>
+                  {formatPercentagePoints(contract.margin.delta)}
+                </span>
+              )}
             </Field>
           </dl>
 
-          {!contract.margin.meetsTarget ? (
+          {contract.margin.meetsTarget === false ? (
             <p
               role="alert"
               className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"
@@ -152,7 +158,7 @@ export default async function KontrakDetailPage({
               <AlertCircle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
               Kontrak ini berada di bawah target marginnya sendiri
               {' '}({formatPercent(contract.margin.gpm)} terhadap{' '}
-              {formatPercent(contract.minGpmTarget)}). Gunakan simulator untuk mencari tarif
+              {formatTarget(contract.minGpmTarget)}). Gunakan simulator untuk mencari tarif
               minimum yang memenuhi target.
             </p>
           ) : null}

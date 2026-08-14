@@ -3,7 +3,7 @@ import { Building2 } from 'lucide-react'
 import { SignInForm } from '@/app/masuk/sign-in-form'
 import { DEMO_ACCOUNTS, demoAccountLabel } from '@/lib/demo-accounts'
 
-export const metadata = { title: 'Masuk — G-CME' }
+export const metadata = { title: 'Masuk — Gapura Commercial' }
 
 export default async function MasukPage({
   searchParams,
@@ -22,7 +22,7 @@ export default async function MasukPage({
                 <Building2 size={20} aria-hidden="true" />
               </div>
               <div>
-                <p className="text-lg font-extrabold">G-CME</p>
+                <p className="text-lg font-extrabold">Gapura Commercial</p>
                 <p className="text-xs text-white/70">Contract &amp; Margin Engine</p>
               </div>
             </div>

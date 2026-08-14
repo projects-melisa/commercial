@@ -25,3 +25,10 @@ blob-report/
 # Supabase CLI local state
 supabase/.temp/
 supabase/.branches/
+
+# Database snapshots taken before a destructive import. They contain real email
+# addresses, profile names and notification bodies, so they stay out of the repo.
+backups/
+
+# Per-developer Claude Code settings. `launch.json` is shared; this one is not.
+.claude/settings.local.json

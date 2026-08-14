@@ -1,4 +1,4 @@
--- G-CME schema, normalised from Master_Database_Komersial_Compiled.xlsx.
+-- Gapura Commercial schema, normalised from Master_Database_Komersial_Compiled.xlsx.
 --
 -- Revenue_Data duplicates tarif and cost from Compiled_Contracts; the duplication is
 -- dropped on import and only Min_GPM_Target is carried across onto the contract row.

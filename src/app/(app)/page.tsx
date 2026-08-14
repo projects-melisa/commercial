@@ -5,7 +5,7 @@ import { CompositionBar, ExpiryTimeline, MarginHistogram, StatusDonut } from '@/
 import { StatCard } from '@/components/dashboard/stat-card'
 import { ContractTable } from '@/components/contracts/contract-table'
 import { EmptyState } from '@/components/ui/states'
-import { requireProfile } from '@/lib/auth'
+import { requireProfile, scopeLabel } from '@/lib/auth'
 import {
   countBy,
   expiryTimeline,
@@ -15,22 +15,22 @@ import {
 import { listContracts, summarise } from '@/lib/data/contracts'
 import { formatPercent, formatRupiahCompact } from '@/lib/domain'
 
-export const metadata = { title: 'Dashboard — G-CME' }
+export const metadata = { title: 'Dashboard — Gapura Commercial' }
 
 export default async function DashboardPage() {
   const profile = await requireProfile()
   const contracts = await listContracts()
   const summary = summarise(contracts)
 
-  // Scope follows the business line, not the role: a Commercial user without one
-  // covers the whole portfolio just as a VP does.
-  const scopeLabel = profile.business_line ? `lini ${profile.business_line}` : 'seluruh lini bisnis'
+  // Scope follows the profile's business line and station, not the role: a user
+  // confined to neither covers the whole portfolio just as a VP does.
+  const scope = scopeLabel(profile)
 
   if (contracts.length === 0) {
     return (
       <EmptyState
         judul="Belum ada kontrak dalam cakupan Anda"
-        keterangan={`Tidak ada kontrak yang terdaftar untuk ${scopeLabel}. Ini bukan kesalahan sistem — cakupan Anda memang kosong.`}
+        keterangan={`Tidak ada kontrak yang terdaftar untuk ${scope}. Ini bukan kesalahan sistem — cakupan Anda memang kosong.`}
       />
     )
   }
@@ -42,7 +42,7 @@ export default async function DashboardPage() {
           Selamat datang, {profile.nama}
         </h1>
         <p className="mt-1 text-sm text-gray-600">
-          Ringkasan portofolio untuk {scopeLabel} — {summary.totalContracts} kontrak.
+          Ringkasan portofolio untuk {scope} — {summary.totalContracts} kontrak.
         </p>
       </header>
 
@@ -55,7 +55,7 @@ export default async function DashboardPage() {
         <StatCard
           label="Total Kontrak"
           value={String(summary.totalContracts)}
-          keterangan={scopeLabel}
+          keterangan={scope}
           icon={FileText}
         />
         <StatCard
@@ -112,10 +112,10 @@ export default async function DashboardPage() {
         />
         <CompositionBar
           judul="Komposisi per Jenis Layanan"
-          ringkasan={countBy(contracts, (c) => c.serviceType)
+          ringkasan={countBy(contracts, (c) => c.serviceType ?? 'Tanpa jenis layanan')
             .map((d) => `${d.name}: ${d.value} kontrak`)
             .join('. ')}
-          data={countBy(contracts, (c) => c.serviceType)}
+          data={countBy(contracts, (c) => c.serviceType ?? 'Tanpa jenis layanan')}
         />
         <ExpiryTimeline data={expiryTimeline(contracts)} />
         <MarginHistogram data={marginDistribution(contracts)} />

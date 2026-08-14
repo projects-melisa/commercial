@@ -183,7 +183,11 @@ anonymous_users = 30
 # Number of sessions that can be refreshed in a 5 minute interval per IP address.
 token_refresh = 150
 # Number of sign up and sign-in requests that can be made in a 5 minute interval per IP address (excludes anonymous users).
-sign_in_sign_ups = 30
+# Raised from the default 30: both test seams sign in as every seeded role from one
+# IP, and a third role took the suite past it — every later test then failed on
+# "Request rate limit reached" rather than on anything it was asserting. This governs
+# the local stack only; a hosted project's limits are set in its own dashboard.
+sign_in_sign_ups = 300
 # Number of OTP / Magic link verifications that can be made in a 5 minute interval per IP address.
 token_verifications = 30
 # Number of Web3 logins that can be made in a 5 minute interval per IP address.

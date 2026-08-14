@@ -18,7 +18,7 @@ export default function AppError({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error('[G-CME]', error)
+    console.error('[Gapura Commercial]', error)
   }, [error])
 
   // The thrown message is a database or network string, in English, aimed at whoever

@@ -53,7 +53,7 @@ const renderEmail = (reminder: PendingReminder, intended: string): string => {
 
   return [
     `<div style="font-family:'Plus Jakarta Sans',Arial,sans-serif;color:#111827">`,
-    `<p style="margin:0 0 4px;font-size:12px;color:#6b7280">G-CME — Contract &amp; Margin Engine</p>`,
+    `<p style="margin:0 0 4px;font-size:12px;color:#6b7280">Gapura Commercial — Contract &amp; Margin Engine</p>`,
     `<h2 style="margin:0 0 12px;color:#1a5c3a">${urgency}${reminder.title}</h2>`,
     `<p style="font-size:14px;line-height:1.6">${reminder.body}</p>`,
     `<p style="font-size:12px;color:#6b7280">Buka dashboard untuk menyiapkan posisi renegosiasi.</p>`,
@@ -171,7 +171,7 @@ Deno.serve(async (request) => {
 
       try {
         await client.send({
-          from: env('SMTP_FROM') ?? 'G-CME <no-reply@gapura.local>',
+          from: env('SMTP_FROM') ?? 'Gapura Commercial <no-reply@gapura.local>',
           to: resolveRecipient(intended),
           subject: reminder.title,
           html: renderEmail(reminder, intended),

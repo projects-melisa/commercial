@@ -4,7 +4,7 @@ import { ExportButton } from '@/app/(app)/laporan/export-button'
 import { CompositionBar, ExpiryTimeline, MarginHistogram, StatusDonut } from '@/components/dashboard/charts'
 import { GpmVsTarget } from '@/components/ui/badges'
 import { EmptyState } from '@/components/ui/states'
-import { requireProfile } from '@/lib/auth'
+import { requireProfile, scopeLabel } from '@/lib/auth'
 import {
   countBy,
   expiryTimeline,
@@ -13,9 +13,9 @@ import {
   statusDistribution,
 } from '@/lib/data/analytics'
 import { listCasesForCustomers, listContracts } from '@/lib/data/contracts'
-import { formatPercent } from '@/lib/domain'
+import { formatPercent, formatTarget } from '@/lib/domain'
 
-export const metadata = { title: 'Laporan — G-CME' }
+export const metadata = { title: 'Laporan — Gapura Commercial' }
 
 export default async function LaporanPage() {
   const profile = await requireProfile()
@@ -57,9 +57,7 @@ export default async function LaporanPage() {
             Laporan &amp; Analitik
           </h1>
           <p className="mt-1 text-sm text-gray-600">
-            {profile.business_line
-              ? `Lini ${profile.business_line} saja — sesuai hak akses Anda.`
-              : 'Seluruh lini bisnis.'}
+            Cakupan: {scopeLabel(profile)} — sesuai hak akses Anda.
           </p>
         </div>
         <ExportButton contracts={contracts} />
@@ -101,13 +99,15 @@ export default async function LaporanPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {[...contracts]
-                .sort((a, b) => a.margin.delta - b.margin.delta)
+                // Worst breach first; contracts with no target have no position in
+                // that order, so they sort to the end rather than to the top.
+                .sort((a, b) => (a.margin.delta ?? Infinity) - (b.margin.delta ?? Infinity))
                 .map((contract) => (
                   <tr key={contract.id}>
                     <td className="py-2 font-medium text-gray-900">{contract.customerName}</td>
                     <td className="py-2 text-gray-600">{contract.businessLine}</td>
                     <td className="py-2 text-gray-700">{formatPercent(contract.margin.gpm)}</td>
-                    <td className="py-2 text-gray-700">{formatPercent(contract.minGpmTarget)}</td>
+                    <td className="py-2 text-gray-700">{formatTarget(contract.minGpmTarget)}</td>
                     <td className="py-2">
                       <GpmVsTarget margin={contract.margin} />
                     </td>

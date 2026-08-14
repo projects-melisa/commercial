@@ -1,11 +1,11 @@
 import { Settings, ShieldCheck } from 'lucide-react'
 
-import { requireProfile } from '@/lib/auth'
+import { requireProfile, scopeLabel } from '@/lib/auth'
 import { listContracts } from '@/lib/data/contracts'
 import { getLastSheetSync } from '@/lib/data/notifications'
-import { formatPercent, REMINDER_MILESTONES } from '@/lib/domain'
+import { formatPercent, REMINDER_MILESTONES, ROLE_LABELS } from '@/lib/domain'
 
-export const metadata = { title: 'Pengaturan — G-CME' }
+export const metadata = { title: 'Pengaturan — Gapura Commercial' }
 
 const BANDS = [
   { band: 'Nonaktif', rule: 'Sudah melewati tanggal berakhir' },
@@ -27,7 +27,12 @@ export default async function PengaturanPage() {
     null,
   )
 
-  const targets = [...new Set(contracts.map((c) => c.minGpmTarget))].sort((a, b) => a - b)
+  // Only the targets that actually exist. Contracts without one are counted
+  // separately rather than appearing as a phantom band.
+  const targets = [...new Set(contracts.map((c) => c.minGpmTarget))]
+    .filter((target): target is number => target !== null)
+    .sort((a, b) => a - b)
+  const withoutTarget = contracts.filter((c) => c.minGpmTarget === null).length
 
   return (
     <div className="space-y-5">
@@ -50,22 +55,18 @@ export default async function PengaturanPage() {
           </div>
           <div>
             <dt className="text-xs font-semibold text-gray-500 uppercase">Peran</dt>
-            <dd className="mt-1 font-semibold text-gray-900">
-              {profile.role === 'vp' ? 'VP / Dirut DC' : 'Commercial'}
-            </dd>
+            <dd className="mt-1 font-semibold text-gray-900">{ROLE_LABELS[profile.role]}</dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold text-gray-500 uppercase">Lini Bisnis</dt>
-            <dd className="mt-1 font-semibold text-gray-900">
-              {profile.business_line ?? 'Seluruh lini bisnis'}
-            </dd>
+            <dt className="text-xs font-semibold text-gray-500 uppercase">Cakupan</dt>
+            <dd className="mt-1 font-semibold text-gray-900">{scopeLabel(profile)}</dd>
           </div>
         </dl>
 
         <p className="mt-4 flex items-start gap-2 rounded-lg bg-gray-50 px-3 py-2.5 text-xs text-gray-600">
           <ShieldCheck size={14} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
           Cakupan ini ditegakkan oleh kebijakan row-level security di basis data, bukan
-          oleh tampilan. Kontrak di luar lini bisnis Anda tidak dikirimkan ke sesi ini
+          oleh tampilan. Kontrak di luar cakupan Anda tidak dikirimkan ke sesi ini
           sama sekali — {contracts.length} kontrak terlihat oleh akun Anda.
         </p>
       </section>
@@ -127,9 +128,10 @@ export default async function PengaturanPage() {
       <section className="rounded-xl border border-gray-200 bg-white p-5">
         <h2 className="mb-1 text-sm font-bold text-gray-900">Target Margin</h2>
         <p className="mb-4 text-xs text-gray-500">
-          Target margin ditetapkan <strong>per kontrak</strong>, bukan satu ambang global.
-          Nilai yang berlaku pada cakupan Anda berkisar {formatPercent(targets[0] ?? 0, 0)}
-          {' '}sampai {formatPercent(targets[targets.length - 1] ?? 0, 0)}.
+          Target margin ditetapkan <strong>per kontrak</strong>, bukan satu ambang global.{' '}
+          {targets.length === 0
+            ? 'Belum ada kontrak dalam cakupan Anda yang memiliki target — sumber data belum mencantumkannya.'
+            : `Nilai yang berlaku pada cakupan Anda berkisar ${formatPercent(targets[0]!, 0)} sampai ${formatPercent(targets[targets.length - 1]!, 0)}.`}
         </p>
         <ul className="flex flex-wrap gap-2">
           {targets.map((target) => (
@@ -143,6 +145,14 @@ export default async function PengaturanPage() {
               </span>
             </li>
           ))}
+          {withoutTarget > 0 ? (
+            <li className="rounded-lg border border-dashed border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-500">
+              Tanpa target
+              <span className="ml-1.5 text-xs font-normal text-gray-400">
+                {withoutTarget} kontrak
+              </span>
+            </li>
+          ) : null}
         </ul>
       </section>
 

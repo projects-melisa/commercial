@@ -1,4 +1,4 @@
-# G-CME: Commercial Contract Monitoring & Dynamic P&L Simulator
+# Gapura Commercial: Contract Monitoring & Dynamic P&L Simulator
 
 Specification for PT Gapura Angkasa — Gapura Innovation Summit 2026.
 Tracked as [issue #1](https://github.com/projects-melisa/commercial/issues/1),
@@ -35,11 +35,11 @@ The consequences the commercial team lives with:
 
 ## Solution
 
-A single web dashboard, **G-CME (Contract & Margin Engine)**, holding contract,
+A single web dashboard, **Gapura Commercial (Contract & Margin Engine)**, holding contract,
 margin, customer and case data in one governed database, showing each person only
 what their role and their business line entitle them to see.
 
-Two kinds of user:
+Three kinds of user:
 
 - **VP / Dirut DC** monitor. They see all 20 contracts across all three business
   lines with full tarif and cost, and they approve or reject the pricing scenarios
@@ -47,10 +47,19 @@ Two kinds of user:
 - **Commercial** work one business line. They see and edit only contracts in their
   own `business_line`, and run pricing simulations against each contract's own
   margin target.
+- **GM Cabang** hold Commercial's authority over one station. They see and edit
+  every contract at their own airport, across all three business lines, and none
+  anywhere else.
+
+Scope is therefore two dimensions — business line and station — and they compose. A
+profile carrying neither is unconfined on that axis, which is what lets one
+Commercial user cover all three lines; a profile carrying a station is confined to
+it whatever its line.
 
 Access is enforced in the database by Postgres row-level security, not by hiding
-things in the interface — a Cargo & Warehouse user querying for Ground Handling
-contracts gets nothing back, because those rows are not visible to their session.
+things in the interface — a Cargo Handling user querying for Ground Handling
+contracts gets nothing back, and so does a Cabang KNO user querying for Cabang CGK,
+because those rows are not visible to their session.
 
 On top of that:
 
@@ -65,30 +74,51 @@ On top of that:
   and closed service cases in one place.
 - **Automatic reminders** at 60, 30 and 14 days before expiry, by email and in-app,
   using the same thresholds that drive the status badges.
-- A **Google Sheets mirror** reproducing the source workbook's four sheets, so
-  existing spreadsheet work keeps functioning without granting write access to the
-  system of record.
+- A **Google Sheets mirror** that reproduced the workbook's four tabs so existing
+  spreadsheet work kept functioning. **Suspended** — see "Who owns what" below: the
+  Sheet became the source of truth, and a job that writes the database back over it
+  would overwrite newer data with older.
 
 ## Source Data
 
-`Master_Database_Komersial_Compiled.xlsx` is authoritative. Nothing on screen is
-invented; every figure traces to a cell.
+**The Google Sheet `Master_Database_Komersial_Compiled` is authoritative.** Where the
+database and the Sheet disagree, the database is wrong and gets adjusted. Nothing on
+screen is invented; every figure traces to a cell. `pnpm seed:generate` reads the
+Sheet directly and writes `supabase/seed.sql`.
 
-| Sheet | Rows | Columns |
+| Tab | Rows | Columns used |
 |---|---|---|
-| `Compiled_Contracts` | 20 | CustomerID, CustomerName, BusinessLine, ServiceType, ContractEndDate, Tarif_Existing, Cost_Existing |
-| `Revenue_Data` | 20 | CustomerID, ServiceType, Tarif_Existing, Cost_Existing, Min_GPM_Target |
-| `CRM_Data` | 20 | CustomerID, CustomerName, RFM_Status |
+| `Compiled_Contracts` | 12 | ContractID, CustomerID, CustomerName, Station, BusinessLine, ContractStartDate, ContractEndDate, Tarif/Handling, Cost/Handling, PIC Customer, Number PIC, Email PIC, Remarks, Latest Contract |
+| `CRM_Data` | 9 | CustomerID, CustomerName, RFM_Status, Frequency/Monetary/Recency Score |
 | `CS_Data` | 10 | CustomerID, CaseDescription, CaseStatus |
+| `Revenue_Data` | 20 | **Stale.** Still keyed on the retired `CUST-GH-*` ids; nothing reads it. |
 
-Shape of it: `CustomerID` keys everything; customers and contracts are 1:1.
-Business lines split Ground Handling 8, Cargo & Warehouse 7, Ancillary Business 5.
-RFM_Status is HIGH 8 / MEDIUM 6 / LOW 6. Cases are 6 OPEN / 4 CLOSED across 9
-customers. Margin targets run 20%–35%.
+Shape of it: `CustomerID` keys everything, and customers are **1:many** with
+contracts — Garuda Indonesia holds both a Ground Handling contract and a Cargo one,
+Batik Air holds two. `Station` may name one airport, several, or "All Station"; the
+importer stores one row per station, which is what the Sheet itself already does for
+K-010 (CGK and DPS, priced differently at each). 12 rows therefore become **15
+contract lines**: Ground Handling 11, Cargo Handling 2, Ancillary Business 2, and
+All Station 6 / CGK 3 / SUB 2 / BTH, DPS, MDC, UPG 1 each.
 
-**What the data does not contain:** no branch or `cabang`, no hub, no volume, no
-revenue amounts, no transaction history, no dates other than contract end. Every
-feature that depended on those has been removed rather than faked.
+**Superseded.** `Master_Database_Komersial_Compiled.xlsx` was the original source and
+is no longer read; `scripts/lib/read-workbook.ts` is kept for the record only. Its
+customers (`CUST-GH-001`, "Garuda Nusantara Airlines") were replaced wholesale by the
+Sheet's real ones (`CUST-001`, "Garuda Indonesia"), so the two cannot be reconciled
+row by row — the Sheet simply replaced them.
+
+**What the Sheet does not contain**, and is therefore null rather than invented:
+
+- **`Min_GPM_Target`** — no column at all, and `Revenue_Data` still keys on the retired
+  ids so it cannot supply one. Every imported contract has a null target: it is
+  excluded from below-target counts, the simulator computes GPM but reports no verdict
+  and no tarif floor, and the interface says "belum ditetapkan" rather than "0%".
+  **This is the one gap worth closing in the Sheet**, because margin against target is
+  the product's whole subject.
+- **`ServiceType`** — absent. `Remarks` (Airlines, FBO, GSE, Cargo, Joumpa, Learning
+  Centre) reads like a segment and is imported as `remarks` rather than quietly
+  renamed into `service_type`, which stays null.
+- No volume, no revenue amounts, no transaction history.
 
 **Tarif units are not comparable across business lines** — Ground Handling is priced
 per handling (Rp 7.5M–31M), Cargo per kg (Rp 4,200–11,500), Ancillary as flat fees
@@ -102,7 +132,7 @@ total, so none is shown. Margin percentages remain comparable and are used inste
 1. As a Commercial user, I want to sign in with an email and password, so that I can reach data that is not public.
 2. As a Commercial user, I want my role and business line to come from my account rather than from something I select at sign-in, so that I cannot grant myself access I am not entitled to.
 3. As a judge evaluating the demo, I want to pick a demo persona and have its credentials filled in for me, so that I can get in without being handed a password list.
-4. As a Commercial user in Cargo & Warehouse, I want to see only Cargo & Warehouse contracts, so that I am not exposed to other lines' commercial terms.
+4. As a Commercial user in Cargo Handling, I want to see only Cargo Handling contracts, so that I am not exposed to other lines' commercial terms.
 5. As a VP, I want to see contracts across all three business lines, so that I can monitor the portfolio as a whole.
 6. As a security reviewer, I want business-line scoping enforced by the database rather than the interface, so that the restriction holds even if a query is written incorrectly.
 7. As any user, I want to sign out, so that I do not leave an authenticated session open on a shared screen.
@@ -241,9 +271,10 @@ total, so none is shown. Margin percentages remain comparable and are used inste
 
 ### Data layer
 
-- **Supabase (Postgres) is the single source of truth.** Supabase Auth for identity.
+- **Supabase (Postgres) is the system of record and the only thing the application reads.** Supabase Auth for identity.
+- **Superseded in part.** Supabase is no longer where the commercial data *originates*: the Google Sheet is, and Supabase is loaded from it. Supabase remains the source of truth for everything the Sheet cannot express — identity, roles, scopes, scenarios, notifications, and the row-level security that is the point of the system.
 - Rejected: SharePoint. The free Microsoft 365 E5 developer sandbox requires a Visual Studio Professional/Enterprise subscription, ISV Success/MAICPP partnership, or a Premier/Unified Support contract. A new personal Microsoft account qualifies for none, and the sandbox is 90-day and documented as unsuitable for production data.
-- Rejected: Google Sheets as source of truth. No row- or column-level read security, which is the property this system exists to provide.
+- Rejected at the time: Google Sheets as source of truth, for having no row- or column-level read security. **That reasoning still holds and is why the Sheet is not read at request time.** It is read once, offline, by `pnpm seed:generate`; every user request is served by Postgres under RLS. The Sheet decides what the numbers are, Postgres decides who may see them.
 
 ### Schema
 
@@ -251,10 +282,11 @@ Normalised from the four sheets. `Revenue_Data` duplicates tarif and cost from
 `Compiled_Contracts`; the duplication is dropped on import and only
 `Min_GPM_Target` is carried across onto the contract row.
 
-- `profiles` — one row per auth user: `nama`, `role` (`vp` | `commercial`), `business_line` (null for `vp`). Role is never client-supplied.
-- `customers` — 20 rows: `customer_id` (natural key, `CUST-XX-NNN`), `nama`, `rfm_status` (`HIGH` | `MEDIUM` | `LOW`).
-- `contracts` — 20 rows, 1:1 with customers: `customer_id`, `business_line`, `service_type`, `contract_end_date`, `tarif`, `cost`, `min_gpm_target`.
-- `cases` — 10 rows: `customer_id`, `description`, `status` (`OPEN` | `CLOSED`). Read-only reference data; no create or edit path.
+- `profiles` — one row per auth user: `nama`, `role` (`vp` | `commercial` | `cabang`), `business_line` and `cabang` (both null for `vp`; null on either means "all of them"). Role is never client-supplied.
+- `cabang` — the station list: `kode` (IATA), `nama`, `kota`. Reference data carried by the migration rather than the generated seed, because the source workbook has no stations. Readable by any signed-in user; written by nobody.
+- `customers` — 9 rows from `CRM_Data`: `customer_id` (natural key, e.g. `CUST-001`), `nama`, `rfm_status` (`HIGH` | `MEDIUM` | `LOW`), and the three RFM component scores.
+- `contracts` — 15 contract lines from 12 Sheet rows, **1:many** with customers: `contract_no`, `customer_id`, `business_line`, `cabang`, `service_type`, `contract_start_date`, `contract_end_date`, `tarif`, `cost`, `min_gpm_target`, PIC fields, `remarks`, `latest_contract`.
+- `cases` — 10 rows: `customer_id`, `description`, `status` (`OPEN` | `CLOSED`). Commercial and GM Cabang may log and close them; nobody may delete.
 - `scenarios` — contract, name, proposed tarif/cost, computed GPM, author, `status` (`draft` | `pending` | `approved` | `rejected`), decided-by, decided-at, rejection reason.
 - `notifications` — recipient, severity, title, body, related contract, read flag, milestone key for idempotency.
 
@@ -262,9 +294,17 @@ Derived, never stored: GPM as `(tarif - cost) / tarif`; days remaining from
 `contract_end_date`; status band from days remaining; margin health as GPM against
 `min_gpm_target`.
 
-Deliberately absent: no `revenue_bulanan`, no volume, no hub, no `cabang`. The source
-data supports none of them, and the earlier revision's monthly-revenue table has been
-removed rather than populated with invented figures.
+Deliberately absent: no `revenue_bulanan`, no hub. The earlier revision's
+monthly-revenue table has been removed rather than populated with invented figures.
+
+**Superseded.** `volume` and `cabang` were both listed here as absent because the
+source workbook supports neither. Both have since been added, for reasons the
+workbook does not settle: volume because revenue is meaningless without it (see
+"Volume, and therefore revenue"), and `cabang` because a station-scoped role was
+asked for and a role needs something to be scoped by. The station assignment for the
+20 seeded contracts is therefore the one figure in this system the source data does
+not supply — it is stated in full in `scripts/generate-seed.ts` rather than derived,
+so what each branch sees is reviewable rather than accidental.
 
 ### Status bands
 
@@ -292,7 +332,11 @@ retained in a `source_end_date` column so nothing is lost.
 - Row-level security enabled on every table; no table readable without a policy.
 - `vp`: select on everything. No insert or update except the scenario decision transition.
 - `commercial`: select and mutate restricted to rows whose `business_line` matches the caller's profile.
+- `cabang`: the same rights as `commercial`, restricted instead to rows whose `cabang` matches the caller's profile. Writing is expressed as "not a VP" rather than as a list of writing roles, so a fourth role that manages contracts needs no policy edited.
+- **Null means "all of them" on both sides.** A caller with no `cabang` is confined to no station; a *contract* with no `cabang` is the Sheet's "All Station" and belongs to every station, so it is visible at each of them. Migration 12 originally read a null contract station as portfolio-level work and hid it from every branch — the exact inverse — and migration 13 corrects it.
+- Both dimensions are read through one function, `in_caller_scope(business_line, cabang)`, used by every policy. Leaving a single policy on the old line-only predicate would let a GM Cabang read the whole portfolio, because a station-scoped profile carries no business line and so passes a line check on its own.
 - Policies are written against the authenticated user's profile, so scoping cannot be bypassed by a client-supplied parameter.
+- The demo seeds three logins, one per role, and the GM Cabang is the confined one: scoped to CGK, it receives 9 of the 15 contract lines — 3 at CGK itself plus 6 "All Station" — and never sees the 6 that belong only to other airports. The property that used to be assertable only against a fixture user is now visible by signing in.
 - **Superseded.** This originally seeded one Commercial user per business line plus one VP — four logins, four distinct row sets, the largest Commercial scope still hiding 60% of the portfolio. The demo now seeds **two logins, one per role**, and the Commercial account carries a null `business_line` meaning every line. A Commercial profile *with* a line is still confined by the policies exactly as before; no seeded account is. See "The demonstration of business-line confidentiality" below.
 
 ### Scenario approval state machine
@@ -317,11 +361,29 @@ draft ──submit──▶ pending ──approve──▶ approved   (terminal)
 - Idempotency on `(contract_id, milestone)`.
 - Recipients are overridden to a configured address in non-production environments.
 
-### Google Sheets mirror
+### Who owns what
 
-- One-way, Supabase → Sheets, written by a Google service account.
-- Reproduces the source workbook's four sheets with identical headers, including the tarif/cost duplication in `Revenue_Data`, so existing formulas and pivots keep working.
-- Not an input path; edits made there are overwritten on the next sync.
+One owner per stage, so nothing round-trips:
+
+| Stage | Owner | Mechanism |
+|---|---|---|
+| The commercial figures themselves | **The Google Sheet** | Edited by hand by the commercial team |
+| Reading them into the repo | `pnpm seed:generate` | `scripts/lib/read-sheet.ts`, read-only scope, raw cell values |
+| Loading a database | `supabase db reset` (local) / `pnpm deploy:db --seed` (hosted) | The generated `supabase/seed.sql`, which **replaces** rather than merges |
+| Everything the Sheet cannot express | **Postgres** | Identity, roles, scope, scenarios, notifications, RLS |
+| Edits made in the application | **Postgres, and they do not flow back** | See the caveat below |
+
+**The unresolved seam:** a contract edited in the application — a renewal, an approved
+scenario applied to tarif and cost — changes Postgres and not the Sheet. The next
+`seed:generate` and reseed would overwrite that edit with the Sheet's older figure.
+Nothing currently reconciles the two, and this is the sharpest thing to settle before
+the system is relied on beyond a demo.
+
+### Google Sheets mirror — suspended
+
+- Was one-way, Supabase → Sheets, written by a Google service account, reproducing the workbook's four tabs with identical headers so existing formulas kept working.
+- **It now points the wrong way.** It clears each tab and rewrites it from the database, so a run would replace hand-maintained `Compiled_Contracts`, `CS_Data` and `CRM_Data` with an older copy of themselves.
+- The daily `g-cme-daily-sheets-mirror` cron has been unscheduled on the hosted project. `pnpm sheets:sync` and `/api/sheets/sync` still exist and are still dangerous; removing them is a decision for whoever owns this spec.
 
 ### Design
 
@@ -411,14 +473,19 @@ breaching margin" panel is therefore nearly empty by construction. The simulator
 where margin pressure becomes visible, because a what-if can push any contract below
 its target on demand — that is the better demo of the same claim.
 
-**The demonstration of business-line confidentiality has been given up, deliberately.**
-The demo seeds two accounts, VP and Commercial, and the Commercial one covers every
-business line. Nothing a judge can log into now shows one Commercial user being denied
-another line's tarif and cost — the headline claim of the Problem Statement. The
-policies still express the boundary, a Commercial profile with a `business_line` set is
-still confined by it, and `tests/rls/scope.test.ts` still asserts all of that against a
-user it creates. But the running demonstration is of two roles, not of three isolated
-scopes, and the Problem Statement's fourth bullet is no longer shown on screen.
+**Scope confidentiality is demonstrable again, by station rather than by line.** The
+demo seeds three accounts, and the GM Cabang one is confined to CGK: signing in as it
+returns 9 of the 15 contract lines — 3 at CGK plus the 6 marked "All Station" — while
+the 6 lines held only by other airports never reach the session. That is the
+same machinery and the same guarantee the Problem Statement's fourth bullet claims,
+shown on screen rather than only in a test.
+
+What is still not shown on screen is that boundary drawn along a **business line**
+specifically. The seeded Commercial account covers all three lines, so no login
+demonstrates one Commercial user being denied another line's tarif and cost. The
+policies still express it, a Commercial profile with a `business_line` set is still
+confined by it, and `tests/rls/scope.test.ts` still asserts it against a user the test
+creates.
 
 **The confidentiality boundary is demonstrated in the application, not enforced at the
 data source.** The Sheets mirror is an ordinary sheet without special permissions, so

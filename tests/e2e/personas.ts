@@ -3,13 +3,24 @@ import { expect, type Page } from '@playwright/test'
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from '../../src/lib/demo-accounts.ts'
 
 /**
- * The two seeded logins, one per role. Neither is confined to a business line, so a
- * spec that needs a small result set reaches for a filter rather than an account.
+ * The three seeded logins, one per role. VP and Commercial are confined to nothing,
+ * so a spec needing a small result set from either reaches for a filter rather than
+ * an account; the GM Cabang is confined to one station and is the small result set.
  */
 export const PERSONAS = {
   vp: DEMO_ACCOUNTS.find((a) => a.role === 'vp')!,
   commercial: DEMO_ACCOUNTS.find((a) => a.role === 'commercial')!,
+  cabang: DEMO_ACCOUNTS.find((a) => a.role === 'cabang')!,
 }
+
+/**
+ * How many contract lines reach the seeded GM Cabang's station: three at CGK itself,
+ * plus the six the Sheet marks "All Station", which belong to every airport.
+ */
+export const CONTRACTS_AT_CABANG = 9
+
+/** Contract lines in the whole book — 12 Sheet rows, split one per station. */
+export const TOTAL_CONTRACTS = 15
 
 /** Signs in through the real form, as a judge opening the demo would. */
 export const signIn = async (page: Page, email: string): Promise<void> => {

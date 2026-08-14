@@ -1,4 +1,4 @@
-# Deploying G-CME
+# Deploying Gapura Commercial
 
 The database and its scheduled jobs live in Supabase; only the web application goes
 to Vercel. Migrations are **not** run by Vercel — pushing a branch never changes the

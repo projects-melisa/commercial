@@ -4,9 +4,9 @@ import { TrendingUp } from 'lucide-react'
 import { GpmIndicator, StatusBadge } from '@/components/ui/badges'
 import { EmptyState } from '@/components/ui/states'
 import { listContracts } from '@/lib/data/contracts'
-import { formatPercent, formatRupiahCompact } from '@/lib/domain'
+import { formatPercent, formatTarget, formatRupiahCompact } from '@/lib/domain'
 
-export const metadata = { title: 'Simulator P&L — G-CME' }
+export const metadata = { title: 'Simulator P&L — Gapura Commercial' }
 
 export default async function SimulatorIndexPage() {
   const contracts = await listContracts()
@@ -46,7 +46,7 @@ export default async function SimulatorIndexPage() {
                 </div>
                 <p className="mt-2.5 text-xs text-gray-500">
                   Tarif {formatRupiahCompact(contract.tarif)} · target{' '}
-                  {formatPercent(contract.minGpmTarget, 0)}
+                  {formatTarget(contract.minGpmTarget, 0)}
                 </p>
               </Link>
             </li>

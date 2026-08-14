@@ -2,7 +2,7 @@
 
 import { useActionState, useId, useState } from 'react'
 import { useFormStatus } from 'react-dom'
-import { Loader2, Lock, LogIn, Mail, ShieldCheck } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Lock, LogIn, Mail, ShieldCheck } from 'lucide-react'
 
 import { signIn, type SignInState } from '@/app/masuk/actions'
 import { DEMO_ACCOUNTS, demoAccountLabel } from '@/lib/demo-accounts'
@@ -29,6 +29,7 @@ export const SignInForm = ({ next }: { next: string }) => {
   const [state, formAction] = useActionState<SignInState, FormData>(signIn, { error: null })
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [passwordVisible, setPasswordVisible] = useState(false)
   const emailId = useId()
   const passwordId = useId()
   const personaId = useId()
@@ -108,13 +109,28 @@ export const SignInForm = ({ next }: { next: string }) => {
           <input
             id={passwordId}
             name="password"
-            type="password"
+            type={passwordVisible ? 'text' : 'password'}
             autoComplete="current-password"
             required
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-lg border border-gray-300 py-2.5 pr-3 pl-9 text-sm focus:border-primary"
+            className="w-full rounded-lg border border-gray-300 py-2.5 pr-10 pl-9 text-sm focus:border-primary"
           />
+          <button
+            type="button"
+            onClick={() => setPasswordVisible((visible) => !visible)}
+            // The label carries the state rather than aria-pressed: a screen reader
+            // otherwise announces "pressed" without saying what is now on screen.
+            aria-label={passwordVisible ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+            aria-controls={passwordId}
+            className="absolute top-1/2 right-1 -translate-y-1/2 rounded-md p-1.5 text-gray-400 hover:text-gray-600 focus-visible:text-gray-600"
+          >
+            {passwordVisible ? (
+              <EyeOff size={16} aria-hidden="true" />
+            ) : (
+              <Eye size={16} aria-hidden="true" />
+            )}
+          </button>
         </div>
       </div>
 

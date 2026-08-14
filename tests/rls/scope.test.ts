@@ -25,22 +25,31 @@ import {
   type ScopedUser,
 } from './client.ts'
 
-const TOTAL_CONTRACTS = 20
-/** Cargo & Warehouse is 7 of the 20 contracts in the source workbook. */
-const CARGO_CONTRACTS = 7
+/**
+ * Counts come from the Google Sheet, which is the source of truth.
+ *
+ * 12 rows of `Compiled_Contracts` become 15 contract lines, because a row naming
+ * several stations is stored as one row per station. 9 customers, 10 cases.
+ */
+const TOTAL_CONTRACTS = 15
+const TOTAL_CUSTOMERS = 9
+/** Cargo Handling is 7 of the 20 contracts in the source workbook. */
+/** Cargo Handling is 2 of the 15 lines — K-009 at CGK and at SUB — both CUST-001's. */
+const CARGO_CONTRACTS = 2
+const CARGO_CUSTOMERS = 1
 
 describe('both seeded roles see the whole portfolio', () => {
   it.each([
     { persona: 'a VP', account: ACCOUNTS.vp },
     { persona: 'a Commercial user', account: ACCOUNTS.commercial },
-  ])('$persona reads all 20 contracts across all three business lines', async ({ account }) => {
+  ])('$persona reads every contract line, across all three business lines', async ({ account }) => {
     const client = await signInAs(account.email)
     const { data, error } = await client.from('contracts').select('id, business_line')
 
     expect(error).toBeNull()
     expect(data).toHaveLength(TOTAL_CONTRACTS)
     expect(new Set(data!.map((row) => row.business_line))).toEqual(
-      new Set(['Ground Handling', 'Cargo & Warehouse', 'Ancillary Business']),
+      new Set(['Ground Handling', 'Cargo Handling', 'Ancillary Business']),
     )
   })
 })
@@ -90,8 +99,10 @@ describe('a line-scoped Commercial user is still confined by the policy', () => 
       scoped.client.from('cases').select('customer_id'),
     ])
 
-    expect(customers.data).toHaveLength(CARGO_CONTRACTS)
-    expect(cases.data!.every((row) => row.customer_id.startsWith('CUST-CG-'))).toBe(true)
+    expect(customers.data).toHaveLength(CARGO_CUSTOMERS)
+    // Every visible case belongs to a customer whose contract is in this line.
+    const visible = new Set(customers.data!.map((row) => row.customer_id))
+    expect(cases.data!.every((row) => visible.has(row.customer_id))).toBe(true)
   })
 
   it('cannot write to a contract outside their line', async () => {
@@ -121,17 +132,17 @@ describe('customers and cases follow their contract', () => {
     const { data, error } = await client.from('customers').select('customer_id')
 
     expect(error).toBeNull()
-    expect(data).toHaveLength(TOTAL_CONTRACTS)
+    expect(data).toHaveLength(TOTAL_CUSTOMERS)
   })
 
-  it('a VP sees all 20 customers and all 10 service cases', async () => {
+  it('a VP sees every customer and all 10 service cases', async () => {
     const client = await signInAs(ACCOUNTS.vp.email)
     const [customers, cases] = await Promise.all([
       client.from('customers').select('customer_id'),
       client.from('cases').select('id'),
     ])
 
-    expect(customers.data).toHaveLength(TOTAL_CONTRACTS)
+    expect(customers.data).toHaveLength(TOTAL_CUSTOMERS)
     expect(cases.data).toHaveLength(10)
   })
 
@@ -191,7 +202,7 @@ describe('who may write', () => {
 
     const { data: logged, error } = await client
       .from('cases')
-      .insert({ customer_id: 'CUST-GH-001', description: 'Uji pencatatan kasus', status: 'OPEN' })
+      .insert({ customer_id: 'CUST-001', description: 'Uji pencatatan kasus', status: 'OPEN' })
       .select('id')
       .single()
     expect(error).toBeNull()
@@ -220,7 +231,7 @@ describe('who may write', () => {
 
     const { error } = await vp
       .from('cases')
-      .insert({ customer_id: 'CUST-GH-001', description: 'x', status: 'OPEN' })
+      .insert({ customer_id: 'CUST-001', description: 'x', status: 'OPEN' })
     expect(error).not.toBeNull()
 
     const { data: updated } = await vp
@@ -234,7 +245,7 @@ describe('who may write', () => {
   it('a Commercial user may create a contract, and a VP may not', async () => {
     const commercial = await signInAs(ACCOUNTS.commercial.email)
     const vp = await signInAs(ACCOUNTS.vp.email)
-    const id = 'CUST-GH-901'
+    const id = 'CUST-901'
 
     const { error: vpRefused } = await vp
       .from('customers')
@@ -251,7 +262,6 @@ describe('who may write', () => {
       business_line: 'Ground Handling',
       service_type: 'Uji',
       contract_end_date: '2027-01-01',
-      source_end_date: '2027-01-01',
       tarif: 1000,
       cost: 500,
       min_gpm_target: 0.25,

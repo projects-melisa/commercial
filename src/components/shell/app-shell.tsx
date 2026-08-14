@@ -7,17 +7,20 @@ import { Building2, LogOut, Menu, X } from 'lucide-react'
 
 import { signOut } from '@/app/masuk/actions'
 import { navItemsFor } from '@/components/shell/nav'
+import { ROLE_LABELS } from '@/lib/domain'
 import type { ProfileRow } from '@/lib/supabase/types'
 
 /**
  * The signed-in identity, as shown in the sidebar.
  *
- * A Commercial user with no business line covers all of them, so there is nothing to
- * qualify the role with — appending a null would read as "Commercial · null".
+ * Qualified by whatever the profile is actually confined to, and by nothing when it
+ * is confined to neither: appending a null would read as "Commercial · null".
  */
 const roleLabel = (profile: ProfileRow): string => {
-  if (profile.role === 'vp') return 'VP / Dirut DC'
-  return profile.business_line ? `Commercial · ${profile.business_line}` : 'Commercial'
+  // Both when a profile is confined on both axes; the policies intersect them, so
+  // naming only one would understate how narrow the session actually is.
+  const scope = [profile.business_line, profile.cabang].filter(Boolean).join(' · ')
+  return scope ? `${ROLE_LABELS[profile.role]} · ${scope}` : ROLE_LABELS[profile.role]
 }
 
 export const AppShell = ({
@@ -108,7 +111,7 @@ export const AppShell = ({
             <Building2 size={18} className="text-white" aria-hidden="true" />
           </div>
           <div>
-            <p className="font-extrabold text-white">G-CME</p>
+            <p className="font-extrabold text-white">Gapura Commercial</p>
             <p className="text-[10px] text-white/60">Contract &amp; Margin Engine</p>
           </div>
         </div>
@@ -136,7 +139,7 @@ export const AppShell = ({
       >
         <div className="flex h-full flex-col bg-gradient-to-b from-sidebar-from to-sidebar-to">
           <div className="flex items-center justify-between px-4 py-4">
-            <p className="font-extrabold text-white">G-CME</p>
+            <p className="font-extrabold text-white">Gapura Commercial</p>
             <button
               type="button"
               onClick={() => setMenuOpen(false)}
@@ -162,7 +165,7 @@ export const AppShell = ({
           >
             <Menu size={20} aria-hidden="true" />
           </button>
-          <p className="font-extrabold text-primary">G-CME</p>
+          <p className="font-extrabold text-primary">Gapura Commercial</p>
         </header>
 
         <main id="konten-utama" className="min-w-0 flex-1 p-4 sm:p-6">

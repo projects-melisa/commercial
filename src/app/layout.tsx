@@ -11,7 +11,7 @@ const plusJakarta = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'G-CME — Contract & Margin Engine',
+  title: 'Gapura Commercial — Contract & Margin Engine',
   description:
     'Pemantauan kontrak komersial dan simulator P&L dinamis untuk PT Gapura Angkasa.',
 }

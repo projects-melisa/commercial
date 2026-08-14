@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from '../../src/lib/demo-accounts.ts'
+import type { BusinessLine } from '../../src/lib/domain.ts'
 import type { Database } from '../../src/lib/supabase/database.types.ts'
 
 export type Client = SupabaseClient<Database>
@@ -48,15 +49,27 @@ export const signInAs = (email: string): Promise<Client> => {
 }
 
 /**
- * The two seeded logins, one per role. Neither is confined to a business line: the VP
- * monitors the whole portfolio and the Commercial user now manages all of it.
+ * The three seeded logins, one per role. Neither VP nor Commercial is confined: the VP
+ * monitors the whole portfolio and the Commercial user manages all of it. The GM
+ * Cabang is confined to one station and is the seeded account that shows a boundary.
  */
 export const ACCOUNTS = {
   vp: DEMO_ACCOUNTS.find((a) => a.role === 'vp')!,
   commercial: DEMO_ACCOUNTS.find((a) => a.role === 'commercial')!,
+  cabang: DEMO_ACCOUNTS.find((a) => a.role === 'cabang')!,
 }
 
-export const OUT_OF_SCOPE_LINE = 'Cargo & Warehouse' as const
+/**
+ * The seeded GM Cabang's station, and how many contract lines they can see.
+ *
+ * Three lines sit at CGK itself; six more are the Sheet's "All Station" work, which
+ * belongs to every airport and is therefore theirs too.
+ */
+export const SCOPED_CABANG = 'CGK' as const
+export const CONTRACTS_AT_SCOPED_CABANG = 9
+export const CONTRACTS_AT_SCOPED_CABANG_ONLY = 3
+
+export const OUT_OF_SCOPE_LINE = 'Cargo Handling' as const
 
 export interface ScopedUser {
   client: Client
@@ -73,7 +86,9 @@ export interface ScopedUser {
  * simply because the demo no longer ships an account that shows it.
  */
 export const createLineScopedCommercial = async (
-  businessLine: 'Ground Handling' | 'Cargo & Warehouse' | 'Ancillary Business',
+  // Typed from the domain rather than restated, so renaming a line in the Sheet
+  // surfaces here as a type error instead of a stale literal that never matches.
+  businessLine: BusinessLine,
 ): Promise<ScopedUser> => {
   const service = serviceClient()
   const email = `scoped-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@gapura.test`

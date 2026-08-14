@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, useId } from 'react'
-import { CheckCircle2, Info, RotateCcw, Save, XCircle } from 'lucide-react'
+import { CheckCircle2, HelpCircle, Info, RotateCcw, Save, XCircle } from 'lucide-react'
 
 import type { ContractView } from '@/lib/data/contracts'
 import {
@@ -11,6 +11,8 @@ import {
   grossProfit,
   marginHealth,
   minimumTarifForTarget,
+  formatTarget,
+  NO_TARGET_LABEL,
 } from '@/lib/domain'
 
 /** How far either side of the contract's real figures the sliders travel. */
@@ -39,11 +41,25 @@ export const Simulator = ({
     [tarif, cost, contract.minGpmTarget],
   )
 
-  /** The negotiating floor: the lowest tarif that still meets target at this cost. */
-  const tarifFloor = minimumTarifForTarget(cost, contract.minGpmTarget)
+  /**
+   * The negotiating floor: the lowest tarif that still meets target at this cost.
+   *
+   * Null when the contract has no target, because the floor is derived from one.
+   * The simulator still computes GPM — it simply cannot say what "good enough" is.
+   */
+  const tarifFloor =
+    contract.minGpmTarget === null ? null : minimumTarifForTarget(cost, contract.minGpmTarget)
   const changed = tarif !== contract.tarif || cost !== contract.cost
 
   const insight = useMemo(() => {
+    if (contract.minGpmTarget === null || tarifFloor === null || simulated.delta === null) {
+      return (
+        `Pada tarif ${formatRupiah(tarif)} dan cost ${formatRupiah(cost)}, GPM menjadi ` +
+        `${formatPercent(simulated.gpm)}. Kontrak ini ${NO_TARGET_LABEL} target marginnya, ` +
+        `sehingga belum ada batas bawah tarif yang bisa dihitung — tetapkan target di ` +
+        `sumber data agar skenario dapat dinilai.`
+      )
+    }
     const target = formatPercent(contract.minGpmTarget)
     if (!simulated.meetsTarget) {
       return (
@@ -135,28 +151,46 @@ export const Simulator = ({
          */}
         <section
           className={`rounded-xl border p-5 transition-colors ${
-            simulated.meetsTarget ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'
+            simulated.meetsTarget === null
+              ? 'border-gray-300 bg-gray-50'
+              : simulated.meetsTarget
+                ? 'border-green-300 bg-green-50'
+                : 'border-red-300 bg-red-50'
           }`}
         >
           <div className="mb-4 flex items-center gap-2">
-            {simulated.meetsTarget ? (
+            {/* Neutral, not red: "no target set" is not a failed target, and painting
+                it as one would report a breach nobody ever defined. */}
+            {simulated.meetsTarget === null ? (
+              <HelpCircle size={18} className="text-gray-500" aria-hidden="true" />
+            ) : simulated.meetsTarget ? (
               <CheckCircle2 size={18} className="text-green-700" aria-hidden="true" />
             ) : (
               <XCircle size={18} className="text-red-700" aria-hidden="true" />
             )}
             <h2
               className={`text-sm font-bold ${
-                simulated.meetsTarget ? 'text-green-900' : 'text-red-900'
+                simulated.meetsTarget === null
+                  ? 'text-gray-700'
+                  : simulated.meetsTarget
+                    ? 'text-green-900'
+                    : 'text-red-900'
               }`}
             >
-              {simulated.meetsTarget ? 'Memenuhi target margin' : 'Di bawah target margin'}
+              {simulated.meetsTarget === null
+                ? 'Target margin belum ditetapkan'
+                : simulated.meetsTarget
+                  ? 'Memenuhi target margin'
+                  : 'Di bawah target margin'}
             </h2>
           </div>
 
           <p className="sr-only-text" role="status" aria-live="polite">
             GPM simulasi {formatPercent(simulated.gpm)},{' '}
-            {simulated.meetsTarget ? 'memenuhi' : 'di bawah'} target{' '}
-            {formatPercent(contract.minGpmTarget)}.
+            {simulated.meetsTarget === null
+              ? `target ${NO_TARGET_LABEL}`
+              : `${simulated.meetsTarget ? 'memenuhi' : 'di bawah'} target ${formatPercent(contract.minGpmTarget!)}`}
+            .
           </p>
 
           {/* Baseline sits beside simulated so the effect of the change is explicit. */}
@@ -183,7 +217,11 @@ export const Simulator = ({
             <dd className="text-gray-700">{formatPercent(contract.margin.gpm)}</dd>
             <dd
               className={`text-lg font-extrabold ${
-                simulated.meetsTarget ? 'text-green-700' : 'text-red-700'
+                simulated.meetsTarget === null
+                  ? 'text-gray-900'
+                  : simulated.meetsTarget
+                    ? 'text-green-700'
+                    : 'text-red-700'
               }`}
             >
               {formatPercent(simulated.gpm)}
@@ -194,22 +232,28 @@ export const Simulator = ({
             <p className="flex justify-between">
               <span className="text-gray-600">Target kontrak ini</span>
               <span className="font-bold text-gray-900">
-                {formatPercent(contract.minGpmTarget)}
+                {formatTarget(contract.minGpmTarget)}
               </span>
             </p>
             <p className="flex justify-between">
               <span className="text-gray-600">Selisih terhadap target</span>
               <span
                 className={`font-bold ${
-                  simulated.meetsTarget ? 'text-green-700' : 'text-red-700'
+                  simulated.meetsTarget === null
+                    ? 'text-gray-500'
+                    : simulated.meetsTarget
+                      ? 'text-green-700'
+                      : 'text-red-700'
                 }`}
               >
-                {formatPercentagePoints(simulated.delta)}
+                {simulated.delta === null ? '—' : formatPercentagePoints(simulated.delta)}
               </span>
             </p>
             <p className="flex justify-between">
               <span className="text-gray-600">Tarif minimum untuk target</span>
-              <span className="font-bold text-gray-900">{formatRupiah(tarifFloor)}</span>
+              <span className="font-bold text-gray-900">
+                {tarifFloor === null ? '—' : formatRupiah(tarifFloor)}
+              </span>
             </p>
           </div>
         </section>

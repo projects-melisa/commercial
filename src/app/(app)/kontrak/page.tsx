@@ -3,10 +3,10 @@ import { Plus } from 'lucide-react'
 
 import { ContractTable } from '@/components/contracts/contract-table'
 import { EmptyState } from '@/components/ui/states'
-import { canEditContracts, requireProfile } from '@/lib/auth'
+import { canEditContracts, requireProfile, scopeLabel } from '@/lib/auth'
 import { listContracts } from '@/lib/data/contracts'
 
-export const metadata = { title: 'Kontrak — G-CME' }
+export const metadata = { title: 'Kontrak — Gapura Commercial' }
 
 export default async function KontrakPage() {
   const profile = await requireProfile()
@@ -18,9 +18,7 @@ export default async function KontrakPage() {
         <div>
         <h1 className="text-xl font-extrabold text-gray-900 sm:text-2xl">Daftar Kontrak</h1>
         <p className="mt-1 text-sm text-gray-600">
-          {profile.business_line
-            ? `${contracts.length} kontrak pada lini ${profile.business_line}.`
-            : `${contracts.length} kontrak di seluruh lini bisnis.`}
+          {contracts.length} kontrak pada {scopeLabel(profile)}.
         </p>
         </div>
         {canEditContracts(profile) ? (

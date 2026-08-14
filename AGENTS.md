@@ -1,4 +1,4 @@
-# G-CME — Contract & Margin Engine
+# Gapura Commercial — Contract & Margin Engine
 
 Next.js 16 (App Router) + React 19 + TypeScript + Tailwind v4, backed by Supabase
 Postgres. Built to the specification in `docs/spec.md`, which is authoritative.
@@ -11,7 +11,7 @@ the visual reference for the design.
 ```sh
 pnpm install
 pnpm db:start      # local Supabase stack (needs Docker running)
-pnpm db:reset      # apply migrations + seed from the workbook
+pnpm db:reset      # apply migrations + seed from the Google Sheet
 pnpm dev           # http://localhost:8443
 pnpm functions:serve  # reminder Edge Function, for the email path
 ```
@@ -31,15 +31,18 @@ pnpm sheets:sync             # write it, once GOOGLE_* are set
 `.env.local` points at the local stack. Its keys are the Supabase CLI's fixed
 development keys — identical on every machine, and worthless against anything hosted.
 
-Sign in with any of the four seeded accounts (see `src/lib/demo-accounts.ts`); the
+Sign in with any of the three seeded accounts (see `src/lib/demo-accounts.ts`); the
 password is the same for all of them and the sign-in screen offers a picker.
 
 ## Key files
 
 - `docs/spec.md` — the specification. Read it before changing behaviour.
 - `supabase/migrations/` — schema, RLS policies, scenario state machine, reminders.
-- `supabase/seed.sql` — **generated**. Run `pnpm seed:generate` after the workbook
-  changes; never edit it by hand.
+- `supabase/seed.sql` — **generated from the Google Sheet**. Run `pnpm seed:generate`
+  after the Sheet changes; never edit it by hand. It needs the `GOOGLE_*` credentials,
+  and it **deletes before inserting** — re-seeding replaces, it does not merge.
+- `scripts/lib/read-sheet.ts` — reads the Sheet. Splits a multi-station row into one
+  contract line per station, and maps "All Station" to a null `cabang`.
 - `src/lib/domain.ts` — every derived value (GPM, status bands, Rupiah formatting).
   Nothing recomputes these locally.
 - `src/lib/supabase/database.types.ts` — **generated**. Regenerate with
@@ -56,9 +59,16 @@ password is the same for all of them and the sign-in screen offers a picker.
 ## Things that will bite you
 
 **Access control lives in the database, not the interface.** Queries in
-`src/lib/data/` deliberately carry no business-line filter — the RLS policy decides
-what comes back. Adding a `.eq('business_line', …)` "to be safe" would hide policy
-mistakes rather than prevent them.
+`src/lib/data/` deliberately carry no business-line or cabang filter — the RLS policy
+decides what comes back. Adding a `.eq('business_line', …)` "to be safe" would hide
+policy mistakes rather than prevent them.
+
+**Scope is two dimensions, read through one function.** Business line and station
+compose, and every policy asks `in_caller_scope(business_line, cabang)` rather than
+comparing columns itself. Null on the caller's side means "all of them" on that axis,
+which is why a GM Cabang carries no business line — and why a policy left on the old
+line-only predicate would hand them the entire portfolio. Add a dimension in
+`in_caller_scope`, not in a policy.
 
 **Derived values are never stored.** GPM, days remaining and the status band are
 computed from the contract row on every read, so a badge and an email cannot
@@ -67,10 +77,21 @@ disagree. Resist adding a `gpm` column to `contracts`.
 **Margin targets are per contract.** `min_gpm_target` ranges 20–35% across the book.
 There is no global threshold, and code that assumes one is wrong.
 
-**Contract end dates are re-anchored on every seed** to `current_date + (source -
-2026-08-10)`, which reproduces the spec's pipeline (Nonaktif 3 / Kritis 3 / Perlu
-Perhatian 5 / Aman 9) whenever the demo is given. `source_end_date` keeps the
-workbook's original date.
+**The Google Sheet is the source of truth, and the mirror still points the other
+way.** `pnpm seed:generate` reads the Sheet into the database; `pnpm sheets:sync` and
+`/api/sheets/sync` write the database back over the Sheet, clearing each tab first.
+The second would overwrite hand-maintained data with an older copy, so the daily
+`g-cme-daily-sheets-mirror` cron has been unscheduled on the hosted project. Do not
+re-enable it without deciding which direction wins.
+
+**Contract dates are the Sheet's own** and are no longer re-anchored on seeding. The
+workbook needed that because its dates aged; the Sheet is maintained by hand.
+`source_end_date` is null for anything the Sheet supplied.
+
+**Most contracts have no `min_gpm_target`.** The Sheet has no column for it, so
+`marginHealth` returns `meetsTarget: null` — three states, not two. Write
+`meetsTarget === false` when you mean "breaching"; a bare `!meetsTarget` counts every
+untargeted contract as a breach.
 
 **The reminder Edge Function must call selection as the *caller*, not the service
 role.** `send_expiry_reminders` is `security definer`, so RLS does not apply inside

@@ -23,12 +23,26 @@ export interface ContractView {
   customerName: string
   rfmStatus: RfmStatus
   businessLine: BusinessLine
-  serviceType: string
+  /** IATA code of the station that owns this contract; null for portfolio-level work. */
+  cabang: string | null
+  /** The Sheet has no service-type column, so this is null for imported contracts. */
+  serviceType: string | null
   contractEndDate: string
-  sourceEndDate: string
+  /** The workbook's original date. Null for anything sourced from the Sheet. */
+  sourceEndDate: string | null
+  /** When the term began, where the Sheet records it. */
+  contractStartDate: string | null
   tarif: number
   cost: number
-  minGpmTarget: number
+  /** The contract's own margin target, or null when the Sheet records none. */
+  minGpmTarget: number | null
+  /** The Sheet's ContractID, e.g. K-010. Shared by the station lines of one contract. */
+  contractNo: string | null
+  picNama: string | null
+  picTelepon: string | null
+  picEmail: string | null
+  remarks: string | null
+  latestContract: string | null
   daysLeft: number
   status: StatusBand
   margin: MarginHealth
@@ -61,21 +75,30 @@ const toView = (
   // Number(undefined) is NaN, which spreads through revenue into the portfolio total
   // and renders as "Rp NaN jt". Unknown has to stay null all the way through.
   const volume = row.volume == null ? null : Number(row.volume)
+  const target = row.min_gpm_target == null ? null : Number(row.min_gpm_target)
   return {
     id: row.id,
     customerId: row.customer_id,
     customerName: row.customers?.nama ?? row.customer_id,
     rfmStatus: row.customers?.rfm_status ?? 'LOW',
     businessLine: row.business_line,
+    cabang: row.cabang,
     serviceType: row.service_type,
     contractEndDate: row.contract_end_date,
     sourceEndDate: row.source_end_date,
+    contractStartDate: row.contract_start_date,
     tarif: Number(row.tarif),
     cost: Number(row.cost),
-    minGpmTarget: Number(row.min_gpm_target),
+    minGpmTarget: target,
+    contractNo: row.contract_no,
+    picNama: row.pic_nama,
+    picTelepon: row.pic_telepon,
+    picEmail: row.pic_email,
+    remarks: row.remarks,
+    latestContract: row.latest_contract,
     daysLeft,
     status: statusBand(daysLeft),
-    margin: marginHealth(Number(row.tarif), Number(row.cost), Number(row.min_gpm_target)),
+    margin: marginHealth(Number(row.tarif), Number(row.cost), target),
     openCaseCount: openCaseCounts.get(row.customer_id) ?? 0,
     volume,
     revenue: revenue(Number(row.tarif), volume),
@@ -211,7 +234,9 @@ export const summarise = (contracts: ContractView[]): PortfolioSummary => {
     dueWithin60Days: contracts.filter((c) => c.daysLeft >= 0 && c.daysLeft <= 60).length,
     expired: contracts.filter((c) => c.daysLeft < 0).length,
     averageGpm: total > 0 ? gpmSum / total : 0,
-    belowTarget: contracts.filter((c) => !c.margin.meetsTarget).length,
+    // `=== false`, not `!`: a contract with no target has not breached one, and
+    // counting nulls here would report breaches nobody ever defined.
+    belowTarget: contracts.filter((c) => c.margin.meetsTarget === false).length,
     byStatus,
     // Only contracts with a recorded volume contribute. The count travels with the
     // total so the figure is never read as covering the whole book when it does not.

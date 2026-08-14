@@ -9,7 +9,7 @@ import { listContracts } from '@/lib/data/contracts'
 import { buildCriticalQueue, type CriticalEntry } from '@/lib/data/critical'
 import { formatSisaHari, formatTanggal } from '@/lib/domain'
 
-export const metadata = { title: 'Kontrak Kritis — G-CME' }
+export const metadata = { title: 'Kontrak Kritis — Gapura Commercial' }
 
 const Band = ({
   judul,

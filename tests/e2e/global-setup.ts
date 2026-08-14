@@ -23,14 +23,18 @@ const writeFunctionEnv = (): void => {
       'SMTP_HOST=host.docker.internal',
       'SMTP_PORT=54325',
       'SMTP_TLS=false',
-      'SMTP_FROM=G-CME <no-reply@gapura.local>',
+      'SMTP_FROM=Gapura Commercial <no-reply@gapura.local>',
       'REMINDER_RECIPIENT_OVERRIDE=demo-inbox@gapura.local',
       '',
     ].join('\n'),
   )
 }
 
-const SEEDED_CONTRACT_COUNT = 20
+/**
+ * Contract lines the Sheet produces: 12 rows of `Compiled_Contracts`, with the
+ * multi-station ones split one row per station.
+ */
+const SEEDED_CONTRACT_COUNT = 15
 
 const contractCount = async (): Promise<number | null> => {
   try {

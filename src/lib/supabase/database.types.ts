@@ -34,6 +34,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      cabang: {
+        Row: {
+          kode: string
+          kota: string
+          nama: string
+        }
+        Insert: {
+          kode: string
+          kota: string
+          nama: string
+        }
+        Update: {
+          kode?: string
+          kota?: string
+          nama?: string
+        }
+        Relationships: []
+      }
       cases: {
         Row: {
           customer_id: string
@@ -66,54 +84,85 @@ export type Database = {
       contracts: {
         Row: {
           business_line: Database["public"]["Enums"]["business_line"]
+          cabang: string | null
           contract_end_date: string
+          contract_no: string | null
+          contract_start_date: string | null
           cost: number
           customer_id: string
           followed_up_at: string | null
           id: string
-          min_gpm_target: number
+          latest_contract: string | null
+          min_gpm_target: number | null
+          pic_email: string | null
+          pic_nama: string | null
+          pic_telepon: string | null
           previous_end_date: string | null
-          service_type: string
-          source_end_date: string
+          remarks: string | null
+          service_type: string | null
+          source_end_date: string | null
           tarif: number
           updated_at: string
           volume: number | null
         }
         Insert: {
           business_line: Database["public"]["Enums"]["business_line"]
+          cabang?: string | null
           contract_end_date: string
+          contract_no?: string | null
+          contract_start_date?: string | null
           cost: number
           customer_id: string
           followed_up_at?: string | null
           id?: string
-          min_gpm_target: number
+          latest_contract?: string | null
+          min_gpm_target?: number | null
+          pic_email?: string | null
+          pic_nama?: string | null
+          pic_telepon?: string | null
           previous_end_date?: string | null
-          service_type: string
-          source_end_date: string
+          remarks?: string | null
+          service_type?: string | null
+          source_end_date?: string | null
           tarif: number
           updated_at?: string
           volume?: number | null
         }
         Update: {
           business_line?: Database["public"]["Enums"]["business_line"]
+          cabang?: string | null
           contract_end_date?: string
+          contract_no?: string | null
+          contract_start_date?: string | null
           cost?: number
           customer_id?: string
           followed_up_at?: string | null
           id?: string
-          min_gpm_target?: number
+          latest_contract?: string | null
+          min_gpm_target?: number | null
+          pic_email?: string | null
+          pic_nama?: string | null
+          pic_telepon?: string | null
           previous_end_date?: string | null
-          service_type?: string
-          source_end_date?: string
+          remarks?: string | null
+          service_type?: string | null
+          source_end_date?: string | null
           tarif?: number
           updated_at?: string
           volume?: number | null
         }
         Relationships: [
           {
+            foreignKeyName: "contracts_cabang_fkey"
+            columns: ["cabang"]
+            isOneToOne: false
+            referencedRelation: "cabang"
+            referencedColumns: ["kode"]
+          },
+          {
             foreignKeyName: "contracts_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["customer_id"]
           },
@@ -122,17 +171,26 @@ export type Database = {
       customers: {
         Row: {
           customer_id: string
+          frequency_score: number | null
+          monetary_score: number | null
           nama: string
+          recency_score: number | null
           rfm_status: Database["public"]["Enums"]["rfm_status"]
         }
         Insert: {
           customer_id: string
+          frequency_score?: number | null
+          monetary_score?: number | null
           nama: string
+          recency_score?: number | null
           rfm_status: Database["public"]["Enums"]["rfm_status"]
         }
         Update: {
           customer_id?: string
+          frequency_score?: number | null
+          monetary_score?: number | null
           nama?: string
+          recency_score?: number | null
           rfm_status?: Database["public"]["Enums"]["rfm_status"]
         }
         Relationships: []
@@ -194,6 +252,7 @@ export type Database = {
       profiles: {
         Row: {
           business_line: Database["public"]["Enums"]["business_line"] | null
+          cabang: string | null
           created_at: string
           id: string
           nama: string
@@ -201,6 +260,7 @@ export type Database = {
         }
         Insert: {
           business_line?: Database["public"]["Enums"]["business_line"] | null
+          cabang?: string | null
           created_at?: string
           id: string
           nama: string
@@ -208,12 +268,21 @@ export type Database = {
         }
         Update: {
           business_line?: Database["public"]["Enums"]["business_line"] | null
+          cabang?: string | null
           created_at?: string
           id?: string
           nama?: string
           role?: Database["public"]["Enums"]["user_role"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_cabang_fkey"
+            columns: ["cabang"]
+            isOneToOne: false
+            referencedRelation: "cabang"
+            referencedColumns: ["kode"]
+          },
+        ]
       }
       scenarios: {
         Row: {
@@ -321,12 +390,19 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["business_line"]
       }
+      caller_cabang: { Args: never; Returns: string }
       caller_is_vp: { Args: never; Returns: boolean }
+      caller_may_write: { Args: never; Returns: boolean }
       caller_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
       caller_sees_all_lines: { Args: never; Returns: boolean }
+      caller_sees_all_scopes: { Args: never; Returns: boolean }
+      in_caller_scope: {
+        Args: { bl: Database["public"]["Enums"]["business_line"]; cb: string }
+        Returns: boolean
+      }
       invoke_reminder_email: { Args: never; Returns: undefined }
       invoke_sheets_sync: { Args: never; Returns: undefined }
       mark_notification_emailed: {
@@ -345,17 +421,14 @@ export type Database = {
       }
     }
     Enums: {
-      business_line:
-        | "Ground Handling"
-        | "Cargo & Warehouse"
-        | "Ancillary Business"
+      business_line: "Ground Handling" | "Cargo Handling" | "Ancillary Business"
       case_status: "OPEN" | "CLOSED"
       notification_severity: "critical" | "warning" | "info"
       rfm_status: "HIGH" | "MEDIUM" | "LOW"
       scenario_status: "draft" | "pending" | "approved" | "rejected"
       sheet_sync_status: "ok" | "failed"
       sheet_sync_trigger: "schedule" | "manual"
-      user_role: "vp" | "commercial"
+      user_role: "vp" | "commercial" | "cabang"
     }
     CompositeTypes: {
       reminder_outcome: {
@@ -495,7 +568,7 @@ export const Constants = {
     Enums: {
       business_line: [
         "Ground Handling",
-        "Cargo & Warehouse",
+        "Cargo Handling",
         "Ancillary Business",
       ],
       case_status: ["OPEN", "CLOSED"],
@@ -504,7 +577,7 @@ export const Constants = {
       scenario_status: ["draft", "pending", "approved", "rejected"],
       sheet_sync_status: ["ok", "failed"],
       sheet_sync_trigger: ["schedule", "manual"],
-      user_role: ["vp", "commercial"],
+      user_role: ["vp", "commercial", "cabang"],
     },
   },
 } as const

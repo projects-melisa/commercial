@@ -4,7 +4,7 @@ import { NotificationList } from '@/app/(app)/notifikasi/notification-list'
 import { EmptyState } from '@/components/ui/states'
 import { listNotifications } from '@/lib/data/notifications'
 
-export const metadata = { title: 'Notifikasi — G-CME' }
+export const metadata = { title: 'Notifikasi — Gapura Commercial' }
 
 export default async function NotifikasiPage() {
   const notifications = await listNotifications()

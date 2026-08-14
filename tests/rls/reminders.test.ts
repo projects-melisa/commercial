@@ -23,7 +23,7 @@ describe('scope', () => {
   let scoped: ScopedUser
 
   beforeAll(async () => {
-    scoped = await createLineScopedCommercial('Cargo & Warehouse')
+    scoped = await createLineScopedCommercial('Cargo Handling')
   })
 
   afterAll(async () => {
