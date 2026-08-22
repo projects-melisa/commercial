@@ -49,25 +49,37 @@ export const signInAs = (email: string): Promise<Client> => {
 }
 
 /**
- * The three seeded logins, one per role. Neither VP nor Commercial is confined: the VP
- * monitors the whole portfolio and the Commercial user manages all of it. The GM
- * Cabang is confined to one station and is the seeded account that shows a boundary.
+ * One seeded login per role, all nine.
+ *
+ * Keyed off `role` rather than off an email literal, so a renamed demo account breaks
+ * here as a missing key instead of quietly signing the whole suite in as nobody.
  */
+const account = (role: (typeof DEMO_ACCOUNTS)[number]['role']) => {
+  const found = DEMO_ACCOUNTS.find((a) => a.role === role)
+  if (!found) throw new Error(`no seeded demo account for role ${role}`)
+  return found
+}
+
 export const ACCOUNTS = {
-  vp: DEMO_ACCOUNTS.find((a) => a.role === 'vp')!,
-  commercial: DEMO_ACCOUNTS.find((a) => a.role === 'commercial')!,
-  cabang: DEMO_ACCOUNTS.find((a) => a.role === 'cabang')!,
+  vp: account('vp'),
+  commercial: account('commercial_kps'),
+  dirut: account('direktur_utama'),
+  cabang: account('cabang'),
+  finance: account('finance_kps'),
+  op: account('op_kps'),
+  os: account('os_kps'),
+  ocs: account('ocs_kps'),
+  superAdmin: account('super_admin'),
 }
 
 /**
- * The seeded GM Cabang's station, and how many contract lines they can see.
+ * The seeded GM Cabang's station.
  *
- * Three lines sit at CGK itself; six more are the Sheet's "All Station" work, which
- * belongs to every airport and is therefore theirs too.
+ * They no longer hold any contract grant at all — the station boundary they show is on
+ * `ancillary_revenues`, the one new table that carries a real `cab` column. The
+ * contract counts this file used to export went with the grant.
  */
 export const SCOPED_CABANG = 'CGK' as const
-export const CONTRACTS_AT_SCOPED_CABANG = 9
-export const CONTRACTS_AT_SCOPED_CABANG_ONLY = 3
 
 export const OUT_OF_SCOPE_LINE = 'Cargo Handling' as const
 
@@ -78,48 +90,35 @@ export interface ScopedUser {
 }
 
 /**
- * A Commercial user confined to one business line, created for the duration of a test.
+ * A Commercial user confined to one business line.
  *
- * No seeded account is line-scoped any more, but the policies still express the
- * boundary and it is the confidentiality guarantee this system exists to provide. So
- * the test brings its own scoped user rather than letting the property go unasserted
- * simply because the demo no longer ships an account that shows it.
+ * This used to mint a fresh user per run through the Admin API; the local GoTrue now
+ * refuses the legacy HS256 service token, so the scoped account is seeded by migration
+ * instead (`20260822150700_line_scoped_demo_account.sql`) and signed into like any
+ * other persona. Nothing to clean up: it is part of the book.
+ *
+ * The line is still the confidentiality guarantee this system exists to provide, and
+ * Cargo Handling is the line every unscoped account does NOT already cover.
  */
+export const LINE_SCOPED_EMAIL = 'cargo@gapura.test'
+
 export const createLineScopedCommercial = async (
-  // Typed from the domain rather than restated, so renaming a line in the Sheet
-  // surfaces here as a type error instead of a stale literal that never matches.
+  // Kept for call-site honesty: passing anything but Cargo Handling is a test bug,
+  // because that is the only line the seeded account holds.
   businessLine: BusinessLine,
 ): Promise<ScopedUser> => {
-  const service = serviceClient()
-  const email = `scoped-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@gapura.test`
-
-  const { data: created, error: createError } = await service.auth.admin.createUser({
-    email,
-    password: DEMO_PASSWORD,
-    email_confirm: true,
-  })
-  if (createError) throw new Error(`could not create a scoped user: ${createError.message}`)
-  const userId = created.user!.id
-
-  const { error: profileError } = await service
-    .from('profiles')
-    .insert({ id: userId, nama: 'Commercial (scoped)', role: 'commercial', business_line: businessLine })
-  if (profileError) throw new Error(`could not profile the scoped user: ${profileError.message}`)
-
-  const client = createClient<Database>(url(), anonKey(), anonOptions)
-  const { error: signInError } = await client.auth.signInWithPassword({
-    email,
-    password: DEMO_PASSWORD,
-  })
-  if (signInError) throw new Error(`could not sign in the scoped user: ${signInError.message}`)
-
-  return {
-    client,
-    userId,
-    cleanup: async () => {
-      await service.auth.admin.deleteUser(userId)
-    },
+  if (businessLine !== OUT_OF_SCOPE_LINE) {
+    throw new Error(`the seeded line-scoped account only covers ${OUT_OF_SCOPE_LINE}`)
   }
+
+  const client = await signInAs(LINE_SCOPED_EMAIL)
+  const { data } = await serviceClient()
+    .from('profiles')
+    .select('id')
+    .eq('business_line', businessLine)
+    .single()
+
+  return { client, userId: data!.id, cleanup: async () => {} }
 }
 
 /** Service-role client, used only to set up and tear down fixtures. */

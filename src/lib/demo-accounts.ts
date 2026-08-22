@@ -47,16 +47,27 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     role: 'vp',
     businessLine: null,
     cabang: null,
-    keterangan: 'Melihat seluruh 20 kontrak di tiga lini bisnis. Tidak dapat mengubah data.',
+    keterangan:
+      'Memantau seluruh portofolio, dan satu-satunya yang menyetujui skenario P&L.',
   },
   {
     email: 'commercial@gapura.test',
     password: DEMO_PASSWORD,
-    nama: 'Commercial',
-    role: 'commercial',
+    nama: 'Commercial KPS',
+    role: 'commercial_kps',
     businessLine: null,
     cabang: null,
-    keterangan: 'Mengelola kontrak di seluruh lini bisnis, termasuk mengubah dan mensimulasikan.',
+    keterangan:
+      'Memantau kontrak, pendapatan, piutang dan penalty di seluruh lini bisnis, dan menyusun skenario P&L. Kontrak sendiri diisi di Sheet, bukan di sini.',
+  },
+  {
+    email: 'dirut@gapura.test',
+    password: DEMO_PASSWORD,
+    nama: 'Direktur Utama',
+    role: 'direktur_utama',
+    businessLine: null,
+    cabang: null,
+    keterangan: 'Sama dengan VP, tanpa wewenang menyetujui skenario.',
   },
   {
     email: 'cabang.cgk@gapura.test',
@@ -66,7 +77,55 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     businessLine: null,
     cabang: 'CGK',
     keterangan:
-      'Wewenang sama dengan Commercial, tetapi hanya untuk Cabang CGK — 9 baris kontrak (3 di CGK, 6 "All Station"); 6 baris milik cabang lain tidak terkirim ke sesi ini.',
+      'Hanya pendapatan Cabang CGK, dan tidak ada yang lain — kontrak, piutang, penalty dan irregularities tidak terkirim ke sesi ini. Masuk langsung ke halaman pendapatannya tanpa memilih ruang kerja.',
+  },
+  {
+    email: 'finance@gapura.test',
+    password: DEMO_PASSWORD,
+    nama: 'Finance KPS',
+    role: 'finance_kps',
+    businessLine: null,
+    cabang: null,
+    keterangan: 'Pemilik piutang: aging receivable dan akumulasinya per pelanggan.',
+  },
+  {
+    email: 'op@gapura.test',
+    password: DEMO_PASSWORD,
+    nama: 'OP KPS',
+    role: 'op_kps',
+    businessLine: null,
+    cabang: null,
+    keterangan: 'Pemilik konsolidasi penalty di KPS.',
+  },
+  {
+    email: 'os@gapura.test',
+    password: DEMO_PASSWORD,
+    nama: 'OS KPS',
+    role: 'os_kps',
+    businessLine: null,
+    cabang: null,
+    keterangan:
+      'Membaca kontrak dan penalty. Pembagian peran OP/OS/OCS belum dijabarkan klien — lihat butir C-12.',
+  },
+  {
+    email: 'ocs@gapura.test',
+    password: DEMO_PASSWORD,
+    nama: 'OCS KPS',
+    role: 'ocs_kps',
+    businessLine: null,
+    cabang: null,
+    keterangan:
+      'Satu-satunya pemegang irregularities, membaca maupun menulis. Sepuluh kasus itu tidak terkirim ke sesi siapa pun yang lain.',
+  },
+  {
+    email: 'superadmin@gapura.test',
+    password: DEMO_PASSWORD,
+    nama: 'Super Admin',
+    role: 'super_admin',
+    businessLine: null,
+    cabang: null,
+    keterangan:
+      'Mengatur siapa memegang role apa, dan tidak melihat satu baris pun data bisnis — nol kontrak, nol pelanggan, nol piutang.',
   },
 ]
 

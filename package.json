@@ -12,7 +12,7 @@
     "build": "next build",
     "start": "next start --port ${PORT:-8443}",
     "typecheck": "tsc --noEmit",
-    "format": "oxfmt",
+    "format": "echo 'oxfmt 0.2.0 corrupts this codebase — see AGENTS.md. Format by hand.' && exit 1",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
@@ -20,7 +20,6 @@
     "test": "pnpm test:rls && pnpm test:e2e",
     "test:rls": "vitest run --config vitest.rls.config.ts",
     "test:e2e": "playwright test",
-    "sheets:sync": "tsx scripts/sync-sheets.ts",
     "functions:serve": "supabase functions serve send-reminders --env-file supabase/functions/.env.local",
     "deploy:db": "tsx scripts/deploy-hosted.ts"
   },

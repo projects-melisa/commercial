@@ -3,32 +3,55 @@ import { expect, type Page } from '@playwright/test'
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from '../../src/lib/demo-accounts.ts'
 
 /**
- * The three seeded logins, one per role. VP and Commercial are confined to nothing,
- * so a spec needing a small result set from either reaches for a filter rather than
- * an account; the GM Cabang is confined to one station and is the small result set.
+ * The nine seeded logins, one per role.
+ *
+ * VP, Commercial and the four KPS units are confined to nothing, so a spec needing a
+ * small result set from any of them reaches for a filter rather than an account. The
+ * GM Cabang is confined to one station and is the small result set; the super admin
+ * is the opposite boundary — signed in, and holding no business data at all.
  */
 export const PERSONAS = {
   vp: DEMO_ACCOUNTS.find((a) => a.role === 'vp')!,
-  commercial: DEMO_ACCOUNTS.find((a) => a.role === 'commercial')!,
+  commercial: DEMO_ACCOUNTS.find((a) => a.role === 'commercial_kps')!,
+  dirut: DEMO_ACCOUNTS.find((a) => a.role === 'direktur_utama')!,
   cabang: DEMO_ACCOUNTS.find((a) => a.role === 'cabang')!,
+  finance: DEMO_ACCOUNTS.find((a) => a.role === 'finance_kps')!,
+  op: DEMO_ACCOUNTS.find((a) => a.role === 'op_kps')!,
+  os: DEMO_ACCOUNTS.find((a) => a.role === 'os_kps')!,
+  ocs: DEMO_ACCOUNTS.find((a) => a.role === 'ocs_kps')!,
+  superAdmin: DEMO_ACCOUNTS.find((a) => a.role === 'super_admin')!,
 }
-
-/**
- * How many contract lines reach the seeded GM Cabang's station: three at CGK itself,
- * plus the six the Sheet marks "All Station", which belong to every airport.
- */
-export const CONTRACTS_AT_CABANG = 9
 
 /** Contract lines in the whole book — 12 Sheet rows, split one per station. */
 export const TOTAL_CONTRACTS = 15
 
+/** The seeded GM Cabang's station. */
+export const SCOPED_CABANG = 'CGK'
+
+/**
+ * Where each persona lands after signing in.
+ *
+ * Not one URL for everyone any more: the destination is decided by the caller's
+ * grants, because the contract dashboard answers 404 to a GM Cabang and to a super
+ * admin. A spec that waited for `/` would hang for two of the nine.
+ */
+export const LANDING = {
+  kps: /\/pilih/,
+  cabang: /\/pendapatan/,
+  superAdmin: /\/pengguna/,
+} as const
+
 /** Signs in through the real form, as a judge opening the demo would. */
-export const signIn = async (page: Page, email: string): Promise<void> => {
+export const signIn = async (
+  page: Page,
+  email: string,
+  landing: RegExp = LANDING.kps,
+): Promise<void> => {
   await page.goto('/masuk')
   await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Kata Sandi').fill(DEMO_PASSWORD)
-  await page.getByRole('button', { name: 'Masuk' }).click()
-  await expect(page).toHaveURL(/\/$|\/kontrak/)
+  await page.getByRole('textbox', { name: 'Kata Sandi' }).fill(DEMO_PASSWORD)
+  await page.getByRole('button', { name: 'Masuk', exact: true }).click()
+  await expect(page).toHaveURL(landing)
 }
 
 export const signOut = async (page: Page): Promise<void> => {

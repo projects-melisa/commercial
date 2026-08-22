@@ -44,14 +44,14 @@ Set these in **Project Settings → Environment Variables**:
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | public |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | public |
-| `SUPABASE_SERVICE_ROLE_KEY` | **secret** — the sheet-sync route reads the whole portfolio |
+| `SUPABASE_SERVICE_ROLE_KEY` | **secret** — the pull route writes the whole portfolio |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | **secret** |
 | `GOOGLE_PRIVATE_KEY` | **secret** — keep the `\n` escapes and the surrounding quotes |
-| `GOOGLE_SHEET_ID` | the mirror's target |
+| `GOOGLE_SHEET_ID` | the pull's source |
 | `SHEETS_SYNC_SECRET` | **secret** — the shared secret the cron job presents |
 
 Only the first two reach the browser. The rest are read exclusively by
-`/api/sheets/sync`, which runs on the server.
+`/api/sheets/pull`, which runs on the server.
 
 Generate the sync secret with `openssl rand -hex 32`.
 
@@ -59,7 +59,7 @@ Set the region to **Singapore (sin1)** in Project Settings → Functions. The da
 is in ap-southeast-1, and the default (Washington) puts a Pacific round trip in front
 of every query.
 
-## 4. Point the scheduled mirror at the deployment
+## 4. Point the scheduled pull at the deployment
 
 The daily `pg_cron` job reads its target from Vault, so it does nothing until told
 where the application lives. After the first deploy, run this against the hosted
@@ -85,24 +85,46 @@ Set **Authentication → URL Configuration → Site URL** to the Vercel domain. 
 is email and password so no redirect is involved, but the setting also governs the
 allow-list used elsewhere.
 
+Two dashboard toggles that no migration can reach (audit R-6 / U-12):
+
+1. **Authentication → Policies → leaked password protection** — turn it on. The CLI's
+   `config.toml` has no key for it, so local dev runs without it; hosted should not.
+2. **MFA for the executive accounts** (`vp`, `direktur_utama`, `super_admin`) — the
+   three most guessable passwords in the book belong to the three least-used logins.
+   Enforce MFA (or Google Workspace SSO) per account; Supabase has no per-role switch,
+   so this is three enrollments and a note, not code.
+
+## Migration history vs the hosted project
+
+The four migrations of 22 Aug recorded on hosted under later timestamps
+(`…071414`, `…083303`, `…100817`, `…130310`) are named exactly that on disk since the
+audit (P0-1/P0-3), so `pnpm deploy:db` skips them and applies only what is genuinely
+new. If a future deploy ever half-applies again, the fix is
+`supabase migration repair --status applied <version>`, not renaming files — the file
+list is now deliberately identical to the hosted ledger.
+
 ## Scheduled jobs, once everything is in place
 
 | Job | When (UTC) | What |
 |---|---|---|
 | `g-cme-daily-expiry-reminders` | 00:15 | Writes notification rows. Pure SQL, no network. |
 | `g-cme-daily-reminder-email` | 00:20 | Invokes the Edge Function to deliver them. |
-| `g-cme-daily-sheets-mirror` | 00:30 | Posts to `/api/sheets/sync`. |
+| `g-cme-daily-sheets-pull` | 19:00 | Posts to `/api/sheets/pull`. |
 
-07:15, 07:20 and 07:30 in Jakarta. The reminder rows are written by a job that cannot
-fail on a network hop, so a broken mail or mirror configuration never costs anyone
-their in-app notification.
+The reminders run at 07:15 and 07:20 Jakarta; the pull runs at 02:00 Jakarta the
+following day, ahead of them, so the reminders read end dates the pull has already
+refreshed. The reminder rows are written by a job that cannot fail on a network hop,
+so a broken mail or pull configuration never costs anyone their in-app notification.
 
 ## Verifying a deployment
 
 ```sh
-pnpm sheets:sync --dry-run   # payload, without writing
-pnpm test:rls                # against whatever .env.local points at
+curl -X POST "$APP_BASE_URL/api/sheets/pull" -H "Authorization: Bearer $SHEETS_SYNC_SECRET"
 ```
+
+A run answers `200` when every tab succeeded and `207` when some did not, with a
+per-tab breakdown either way. `pnpm test:rls` runs against whatever `.env.local`
+points at.
 
 `pnpm test:e2e` refuses to run unless `NEXT_PUBLIC_SUPABASE_URL` is the local stack —
 it wipes and rewrites the database. Point it at the local stack rather than

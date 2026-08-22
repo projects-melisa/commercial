@@ -3,6 +3,7 @@ import { AlertTriangle } from 'lucide-react'
 
 import { GpmIndicator, RfmBadge, StatusBadge } from '@/components/ui/badges'
 import { EmptyState } from '@/components/ui/states'
+import { requireGrant } from '@/lib/auth'
 import { listContracts, type ContractView } from '@/lib/data/contracts'
 import { STATUS_BANDS } from '@/lib/domain'
 
@@ -61,6 +62,7 @@ const byCustomer = (contracts: ContractView[]): CustomerSummary[] => {
 }
 
 export default async function PelangganPage() {
+  await requireGrant('crm', 'view')
   const contracts = await listContracts()
   const customers = byCustomer(contracts)
 

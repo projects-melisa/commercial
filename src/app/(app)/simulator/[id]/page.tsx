@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react'
 
 import { SimulatorPanel } from '@/app/(app)/simulator/[id]/simulator-panel'
 import { StatusBadge } from '@/components/ui/badges'
-import { canEditContracts, requireProfile } from '@/lib/auth'
+import { may, requireGrant } from '@/lib/auth'
 import { getContract } from '@/lib/data/contracts'
 import { listScenariosForContract } from '@/lib/data/scenarios'
 import { formatTarget } from '@/lib/domain'
@@ -13,7 +13,7 @@ export const metadata = { title: 'Simulator P&L — Gapura Commercial' }
 
 export default async function SimulatorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const profile = await requireProfile()
+  const { profile, grants } = await requireGrant('simulator', 'view')
   const contract = await getContract(id)
   if (!contract) notFound()
 
@@ -47,7 +47,7 @@ export default async function SimulatorPage({ params }: { params: Promise<{ id: 
         scenarios={scenarios}
         // A VP monitors and approves; proposing pricing belongs to whoever manages the
         // contract, and the insert policy would refuse it regardless of what is shown.
-        canAuthor={canEditContracts(profile)}
+        canAuthor={may(grants, 'simulator', 'input')}
       />
     </div>
   )

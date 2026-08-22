@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { AlertTriangle, CheckCheck, Info, TriangleAlert } from 'lucide-react'
 
 import { markAllRead, markRead } from '@/app/(app)/notifikasi/actions'
+import { Drillable } from '@/components/ui/drill-down'
 import type { NotificationRow, NotificationSeverity } from '@/lib/supabase/types'
 
 const SEVERITY = {
@@ -76,15 +77,17 @@ export const NotificationList = ({ notifications }: { notifications: Notificatio
                   </span>
 
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-gray-900">{notification.title}</p>
-                      {!notification.read ? (
-                        <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
-                          BARU
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-1 text-sm text-gray-600">{notification.body}</p>
+                    <Drillable kind="notification" id={notification.id} className="block w-full">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-gray-900">{notification.title}</p>
+                        {!notification.read ? (
+                          <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
+                            BARU
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 text-sm text-gray-600">{notification.body}</p>
+                    </Drillable>
 
                     <div className="mt-2 flex flex-wrap gap-3 text-sm">
                       {notification.contract_id ? (

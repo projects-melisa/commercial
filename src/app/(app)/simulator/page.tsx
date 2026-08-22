@@ -3,12 +3,14 @@ import { TrendingUp } from 'lucide-react'
 
 import { GpmIndicator, StatusBadge } from '@/components/ui/badges'
 import { EmptyState } from '@/components/ui/states'
+import { requireGrant } from '@/lib/auth'
 import { listContracts } from '@/lib/data/contracts'
 import { formatPercent, formatTarget, formatRupiahCompact } from '@/lib/domain'
 
 export const metadata = { title: 'Simulator P&L — Gapura Commercial' }
 
 export default async function SimulatorIndexPage() {
+  await requireGrant('simulator', 'view')
   const contracts = await listContracts()
 
   return (

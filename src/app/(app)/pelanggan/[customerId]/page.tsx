@@ -4,7 +4,7 @@ import { ArrowLeft, Lightbulb } from 'lucide-react'
 
 import { logCase, toggleCase } from '@/app/(app)/pelanggan/[customerId]/actions'
 import { GpmIndicator, RfmBadge, StatusBadge } from '@/components/ui/badges'
-import { canEditContracts, requireProfile } from '@/lib/auth'
+import { may, requireGrant } from '@/lib/auth'
 import { listCasesForCustomer, listContracts } from '@/lib/data/contracts'
 import type { ContractView } from '@/lib/data/contracts'
 import {
@@ -73,8 +73,9 @@ export default async function PelangganDetailPage({
   params: Promise<{ customerId: string }>
 }) {
   const { customerId } = await params
-  const profile = await requireProfile()
-  const canManageCases = canEditContracts(profile)
+  const { profile, grants } = await requireGrant('crm', 'view')
+  const seesCases = may(grants, 'irregularities', 'view')
+  const canManageCases = may(grants, 'irregularities', 'input')
   const contracts = await listContracts()
   // Every contract this customer holds, not the first one found. They stopped being
   // 1:1 when the Sheet became the source of truth, and `find` was quietly dropping
@@ -86,7 +87,10 @@ export default async function PelangganDetailPage({
   // The most urgent line leads: it is the one the recommendation is about.
   const contract = own[0]!
 
-  const cases = await listCasesForCustomer(customerId)
+  // Asked before the query, not after: RLS hands a caller without the grant an empty
+  // array, and "no cases on file" must not be indistinguishable from "not yours to
+  // know". The same distinction is drawn on the contract page, for the same reason.
+  const cases = seesCases ? await listCasesForCustomer(customerId) : []
   const openCases = cases.filter((c) => c.status === 'OPEN')
 
   return (
@@ -197,10 +201,17 @@ export default async function PelangganDetailPage({
         <section className="rounded-xl border border-gray-200 bg-white p-5">
           <h2 className="mb-1 text-sm font-bold text-gray-900">Riwayat Kasus Layanan</h2>
           <p className="mb-4 text-xs text-gray-500">
-            {cases.length} kasus tercatat, {openCases.length} di antaranya masih terbuka.
+            {seesCases
+              ? `${cases.length} kasus tercatat, ${openCases.length} di antaranya masih terbuka.`
+              : 'Dipegang OCS KPS.'}
           </p>
 
-          {cases.length === 0 ? (
+          {!seesCases ? (
+            <p className="text-sm text-gray-400">
+              Peran Anda tidak menerima data irregularities, jadi halaman ini tidak bisa menyatakan
+              pelanggan ini punya kasus atau tidak. Tanya OCS sebelum memutuskan — lihat R-01.
+            </p>
+          ) : cases.length === 0 ? (
             <p className="text-sm text-gray-400">Belum ada kasus tercatat untuk pelanggan ini.</p>
           ) : (
             <ul className="space-y-2.5">

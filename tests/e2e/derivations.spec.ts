@@ -14,12 +14,12 @@ test.describe('margin against each contract´s own target', () => {
     await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
 
-    // Samudera Cold Chain: tarif 11.000, cost 7.800 → 29,1% against a 30% target.
-    await page.getByRole('link', { name: 'Samudera Cold Chain' }).click()
+    // Pelita Air: tarif 16.000.000, cost 12.400.000 → 22,5% against a 25% target.
+    await page.getByRole('link', { name: 'Pelita Air' }).click()
 
-    await expect(page.getByText('29,1%').first()).toBeVisible()
+    await expect(page.getByText('22,5%').first()).toBeVisible()
     await expect(page.getByText('Target GPM Kontrak Ini')).toBeVisible()
-    await expect(page.getByText('30,0%').first()).toBeVisible()
+    await expect(page.getByText('25,0%').first()).toBeVisible()
     await expect(
       page.getByText(/Kontrak ini berada di bawah target marginnya sendiri/),
     ).toBeVisible()
@@ -29,60 +29,71 @@ test.describe('margin against each contract´s own target', () => {
     await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
 
-    // Garuda Nusantara: 12.500.000 / 9.000.000 → 28,0% against a 25% target.
-    await page.getByRole('link', { name: 'Garuda Nusantara Airlines' }).click()
+    // Citilink: tarif 18.500.000, cost 14.800.000 → 20,0% against a 20,0% target —
+    // meets exactly, so no breach.
+    await page.getByRole('link', { name: 'Citilink' }).click()
 
-    await expect(page.getByText('28,0%').first()).toBeVisible()
+    await expect(page.getByText('20,0%').first()).toBeVisible()
     await expect(page.getByText(/berada di bawah target marginnya sendiri/)).toHaveCount(0)
   })
 
-  test('the dashboard counts exactly one contract below target for a VP', async ({ page }) => {
+  test('the report counts contracts below target for each business line', async ({ page }) => {
     await signIn(page, PERSONAS.vp.email)
+    await page.goto('/laporan')
 
-    const belowTarget = await page
-      .locator('p', { hasText: /^Di Bawah Target$/ })
-      .locator('xpath=following-sibling::p[1]')
-      .innerText()
-    expect(belowTarget.trim()).toBe('1')
+    const dibawahTarget = async (line: string): Promise<string> =>
+      (
+        await page
+          .locator('tr', { has: page.getByRole('rowheader', { name: line, exact: true }) })
+          .locator('td')
+          .nth(2)
+          .innerText()
+      ).trim()
+
+    expect(await dibawahTarget('Ground Handling')).toBe('10')
+    expect(await dibawahTarget('Ancillary Business')).toBe('1')
+    expect(await dibawahTarget('Cargo Handling')).toBe('2')
   })
 })
 
 test.describe('Rupiah across three orders of magnitude', () => {
-  test('a per-kg cargo tarif is not collapsed to zero', async ({ page }) => {
+  test('the smallest tarif in the book is not collapsed to zero', async ({ page }) => {
     await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
 
-    // Indo Logistic Solusi is priced at Rp 4.200 per kg — the smallest tarif in the
-    // book, and the one a naive "juta" formatter would render as "Rp 0,0 jt".
-    await page.getByRole('link', { name: 'Indo Logistic Solusi' }).click()
+    // Jogja Flight, Rp 5.200.000, is currently the smallest tarif in the book — still
+    // above the compact formatter's 1-juta floor, so it abbreviates on the list, but
+    // the detail page always renders it in full.
+    await page.getByRole('link', { name: 'Jogja Flight' }).click()
 
-    await expect(page.getByText('Rp 4.200')).toBeVisible()
+    await expect(page.getByText('Rp 5.200.000')).toBeVisible()
     await expect(page.getByText(/Rp 0,0 jt/)).toHaveCount(0)
   })
 
-  test('a large flat fee renders in full on the detail page', async ({ page }) => {
+  test('a large tarif still renders in full on the detail page', async ({ page }) => {
     await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
 
-    // Angkasa Retail Group: a Rp 120.000.000 flat fee.
-    await page.getByRole('link', { name: 'Angkasa Retail Group' }).click()
-    await expect(page.getByText('Rp 120.000.000')).toBeVisible()
+    // Super Air Jet: Rp 13.000.000, the largest tarif among the book's uniquely
+    // named customers.
+    await page.getByRole('link', { name: 'Super Air Jet' }).click()
+    await expect(page.getByText('Rp 13.000.000')).toBeVisible()
   })
 
-  test('the contract list abbreviates only where it stays legible', async ({ page }) => {
+  test('the contract list formats an abbreviated tarif sensibly', async ({ page }) => {
     await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
-    // Narrowed to Cargo Handling, whose tarifs are per kg. The Commercial user now
-    // sees every line, and Ground Handling's millions legitimately do abbreviate — the
-    // property under test is that the small per-kg figures are not swept up with them.
+    // Cargo Handling now holds a single contract (Rp 11.200.000), large enough that
+    // it legitimately abbreviates like every other line's — there is no longer a
+    // per-kg-scale Cargo tarif in the book to guard the small-figure case with. What's
+    // still worth asserting is that the abbreviation itself renders sanely.
     await page.getByLabel('Saring berdasarkan lini bisnis').selectOption('Cargo Handling')
 
     const tarifCells = await page.locator('table tbody tr td:nth-child(8)').allInnerTexts()
     expect(tarifCells.length).toBeGreaterThan(0)
-    // Cargo tarifs are all four- and five-figure, so none should be abbreviated.
     for (const cell of tarifCells) {
-      expect(cell).not.toMatch(/jt|M|T/)
-      expect(cell).toMatch(/^Rp [\d.]+$/)
+      expect(cell).toMatch(/^Rp \d+,\d jt$/)
+      expect(cell).not.toMatch(/0,0/)
     }
   })
 })
@@ -101,11 +112,12 @@ test.describe('status banding', () => {
       return acc
     }, {})
 
-    // The workbook's dates, re-anchored on seed, yield this pipeline.
-    expect(counts['Aman']).toBe(9)
-    expect(counts['Perlu Perhatian']).toBe(5)
+    // The Sheet's own dates, unaltered by seeding, yield this pipeline as of the
+    // book's current shape.
+    expect(counts['Aman']).toBe(5)
+    expect(counts['Perlu Perhatian']).toBe(3)
     expect(counts['Kritis']).toBe(3)
-    expect(counts['Nonaktif']).toBe(3)
+    expect(counts['Nonaktif']).toBe(4)
   })
 
   test('expired contracts are queued apart from the ones still savable', async ({ page }) => {
@@ -135,24 +147,24 @@ test.describe('search, filter and sort', () => {
   })
 
   test('searching by customer name narrows the list', async ({ page }) => {
-    await page.getByLabel('Cari nama pelanggan').fill('Samudera')
+    await page.getByLabel('Cari nama pelanggan').fill('Citilink')
     await expect(page.locator('table tbody tr')).toHaveCount(1)
-    await expect(page.getByRole('link', { name: 'Samudera Cold Chain' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Citilink' })).toBeVisible()
   })
 
   test('filtering by business line narrows the list', async ({ page }) => {
     await page.getByLabel('Saring berdasarkan lini bisnis').selectOption('Ancillary Business')
-    await expect(page.locator('table tbody tr')).toHaveCount(5)
+    await expect(page.locator('table tbody tr')).toHaveCount(2)
   })
 
   test('filtering by status band narrows the list', async ({ page }) => {
     await page.getByLabel('Saring berdasarkan status').selectOption('Nonaktif')
-    await expect(page.locator('table tbody tr')).toHaveCount(3)
+    await expect(page.locator('table tbody tr')).toHaveCount(4)
   })
 
   test('filtering by RFM standing narrows the list', async ({ page }) => {
     await page.getByLabel('Saring berdasarkan standing RFM').selectOption('HIGH')
-    await expect(page.locator('table tbody tr')).toHaveCount(8)
+    await expect(page.locator('table tbody tr')).toHaveCount(6)
   })
 
   test('a search that matches nothing explains itself rather than looking broken', async ({

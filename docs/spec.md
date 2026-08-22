@@ -102,7 +102,7 @@ contract lines**: Ground Handling 11, Cargo Handling 2, Ancillary Business 2, an
 All Station 6 / CGK 3 / SUB 2 / BTH, DPS, MDC, UPG 1 each.
 
 **Superseded.** `Master_Database_Komersial_Compiled.xlsx` was the original source and
-is no longer read; `scripts/lib/read-workbook.ts` is kept for the record only. Its
+is no longer read; the workbook reader that went with it has been deleted. Its
 customers (`CUST-GH-001`, "Garuda Nusantara Airlines") were replaced wholesale by the
 Sheet's real ones (`CUST-001`, "Garuda Indonesia"), so the two cannot be reconciled
 row by row — the Sheet simply replaced them.
@@ -383,7 +383,7 @@ the system is relied on beyond a demo.
 
 - Was one-way, Supabase → Sheets, written by a Google service account, reproducing the workbook's four tabs with identical headers so existing formulas kept working.
 - **It now points the wrong way.** It clears each tab and rewrites it from the database, so a run would replace hand-maintained `Compiled_Contracts`, `CS_Data` and `CRM_Data` with an older copy of themselves.
-- The daily `g-cme-daily-sheets-mirror` cron has been unscheduled on the hosted project. `pnpm sheets:sync` and `/api/sheets/sync` still exist and are still dangerous; removing them is a decision for whoever owns this spec.
+- **Resolved, and this section is now history.** The mirror was deleted outright — `src/lib/sheets/sync.ts`, `src/lib/sheets/mirror.ts`, `scripts/sync-sheets.ts`, `/api/sheets/sync` and the cron. The only direction that exists is Sheet → Supabase, via `/api/sheets/pull` on `g-cme-daily-sheets-pull`. See `docs/Gapura OneClick Commercial.md` §8.
 
 ### Design
 

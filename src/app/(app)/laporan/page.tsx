@@ -4,7 +4,7 @@ import { ExportButton } from '@/app/(app)/laporan/export-button'
 import { CompositionBar, ExpiryTimeline, MarginHistogram, StatusDonut } from '@/components/dashboard/charts'
 import { GpmVsTarget } from '@/components/ui/badges'
 import { EmptyState } from '@/components/ui/states'
-import { requireProfile, scopeLabel } from '@/lib/auth'
+import { requireGrant, scopeLabel } from '@/lib/auth'
 import {
   countBy,
   expiryTimeline,
@@ -18,7 +18,7 @@ import { formatPercent, formatTarget } from '@/lib/domain'
 export const metadata = { title: 'Laporan — Gapura Commercial' }
 
 export default async function LaporanPage() {
-  const profile = await requireProfile()
+  const { profile } = await requireGrant('kontrak', 'view')
   // Reports read through exactly the same scoped query as every other screen, so the
   // figures here cannot disagree with the dashboard or the contract list.
   const contracts = await listContracts()

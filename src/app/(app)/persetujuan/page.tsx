@@ -1,9 +1,8 @@
-import { redirect } from 'next/navigation'
 import { CheckSquare } from 'lucide-react'
 
 import { DecisionForm } from '@/app/(app)/persetujuan/decision-form'
 import { EmptyState } from '@/components/ui/states'
-import { requireProfile } from '@/lib/auth'
+import { requireGrant } from '@/lib/auth'
 import { listPendingScenarios } from '@/lib/data/scenarios'
 import {
   formatPercent,
@@ -20,9 +19,11 @@ export default async function PersetujuanPage({
 }: {
   searchParams: Promise<{ keputusan?: string }>
 }) {
-  const profile = await requireProfile()
-  // Approval is the VP's alone; the decision policy would refuse anyone else anyway.
-  if (profile.role !== 'vp') redirect('/')
+  // Read from the grant table rather than naming the VP: the policy that would refuse
+  // anyone else reads the same row, so a second approver is one insert, not two edits.
+  // 404 rather than a bounce to the dashboard — a redirect still confirms the queue is
+  // there and that somebody else is allowed to work it.
+  await requireGrant('simulator', 'approve')
 
   const { keputusan } = await searchParams
   const scenarios = await listPendingScenarios()

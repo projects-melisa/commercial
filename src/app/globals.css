@@ -23,6 +23,21 @@
    */
   --color-gray-300: #858f9e; /* 3.27:1 on white, 3.02:1 on the canvas */
   --color-gray-400: #6b7280; /* 4.83:1 on white, 4.47:1 on the canvas */
+
+  /*
+   * Achievement colours, kept apart from the brand green on purpose.
+   *
+   * The brand green belongs to navigation and buttons. If it also meant "good", a
+   * green button and a green result would read as the same signal, and the dashboards
+   * this replaces already lost their red that way — half the table was coloured, so
+   * none of it said anything.
+   *
+   * Colour is never the only marker here: negatives are bracketed and every band also
+   * carries its number.
+   */
+  --color-sem-ok: #166534; /* 6.31:1 on white */
+  --color-sem-warn: #92400e; /* 6.53:1 on white */
+  --color-sem-bad: #991b1b; /* 7.62:1 on white */
 }
 
 @layer base {
@@ -114,6 +129,51 @@
     white-space: nowrap;
     border-width: 0;
   }
+
+  /*
+   * Login page — corporate enterprise dark theme.
+   *
+   * The subtle grid pattern and staggered card entrances are the only motion.
+   * Everything defers to the prefers-reduced-motion gate in the base layer above.
+   */
+
+  .login-grid-bg {
+    background-image:
+      linear-gradient(to right, rgb(255 255 255 / 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(255 255 255 / 0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .login-accent-glow {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+  }
+
+  .login-card-enter {
+    animation: login-fade-in-up 500ms ease both;
+  }
+
+  .login-form-enter {
+    animation: login-fade-in 400ms ease both;
+  }
+}
+
+@keyframes login-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes login-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 ::-webkit-scrollbar {
@@ -252,4 +312,43 @@ body:has(dialog[open]) {
     14px 100%,
     14px 100%;
   background-attachment: local, local, scroll, scroll;
+}
+
+/*
+ * Dashboard hero — the one dark band on an otherwise light application.
+ *
+ * The grid and the glow are painted with gradients rather than an image so the header
+ * costs no request and stays crisp at any width. Both are decorative: everything the
+ * band says is said in text on top of it.
+ */
+.dash-hero {
+  background:
+    radial-gradient(120% 140% at 88% -20%, rgb(45 122 82 / 0.55), transparent 60%),
+    linear-gradient(120deg, var(--color-sidebar-from), #17573a 55%, var(--color-sidebar-to));
+}
+.dash-hero-grid {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.06) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/*
+ * One authored page-load moment rather than motion scattered through the page: the
+ * cards rise in sequence, and nothing else on the dashboard animates. `both` is
+ * load-bearing — without the backwards fill each card is painted at full opacity until
+ * its delay elapses, which is a flash rather than a stagger.
+ */
+@keyframes dash-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.dash-rise {
+  animation: dash-rise 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }

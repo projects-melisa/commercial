@@ -1,15 +1,12 @@
-import Link from 'next/link'
-import { Plus } from 'lucide-react'
-
 import { ContractTable } from '@/components/contracts/contract-table'
 import { EmptyState } from '@/components/ui/states'
-import { canEditContracts, requireProfile, scopeLabel } from '@/lib/auth'
+import { requireGrant, scopeLabel } from '@/lib/auth'
 import { listContracts } from '@/lib/data/contracts'
 
 export const metadata = { title: 'Kontrak — Gapura Commercial' }
 
 export default async function KontrakPage() {
-  const profile = await requireProfile()
+  const { profile } = await requireGrant('kontrak', 'view')
   const contracts = await listContracts()
 
   return (
@@ -21,16 +18,7 @@ export default async function KontrakPage() {
           {contracts.length} kontrak pada {scopeLabel(profile)}.
         </p>
         </div>
-        {canEditContracts(profile) ? (
-          <Link
-            href="/kontrak/baru"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-light"
-          >
-            <Plus size={15} aria-hidden="true" />
-            Kontrak Baru
-          </Link>
-        ) : null}
-      </header>
+</header>
 
       {contracts.length === 0 ? (
         <EmptyState

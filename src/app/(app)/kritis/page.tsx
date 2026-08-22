@@ -5,6 +5,7 @@ import { markFollowedUp } from '@/app/(app)/kritis/actions'
 import { SendReminderButton } from '@/app/(app)/kritis/send-reminder-button'
 import { GpmIndicator, RfmBadge } from '@/components/ui/badges'
 import { EmptyState } from '@/components/ui/states'
+import { requireGrant } from '@/lib/auth'
 import { listContracts } from '@/lib/data/contracts'
 import { buildCriticalQueue, type CriticalEntry } from '@/lib/data/critical'
 import { formatSisaHari, formatTanggal } from '@/lib/domain'
@@ -113,6 +114,7 @@ const Band = ({
 }
 
 export default async function KritisPage() {
+  await requireGrant('kontrak', 'view')
   const contracts = await listContracts()
   const queue = buildCriticalQueue(contracts)
   const total = queue.nonaktif.length + queue.kritis.length + queue.perluPerhatian.length

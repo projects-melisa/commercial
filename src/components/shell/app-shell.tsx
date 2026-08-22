@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Building2, LogOut, Menu, X } from 'lucide-react'
+import { ArrowLeftRight, LogOut, Menu, X } from 'lucide-react'
 
 import { signOut } from '@/app/masuk/actions'
-import { navItemsFor } from '@/components/shell/nav'
+import { navItemsFor, type NavWorkspace } from '@/components/shell/nav'
+import type { Grants } from '@/lib/auth'
 import { ROLE_LABELS } from '@/lib/domain'
 import type { ProfileRow } from '@/lib/supabase/types'
 
@@ -25,17 +27,24 @@ const roleLabel = (profile: ProfileRow): string => {
 
 export const AppShell = ({
   profile,
+  grants,
   unreadCount,
   children,
 }: {
   profile: ProfileRow
+  grants: Grants
   unreadCount: number
   children: React.ReactNode
 }) => {
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
   const drawerRef = useRef<HTMLDialogElement>(null)
-  const items = navItemsFor(profile.role)
+  const workspace: NavWorkspace = pathname.startsWith('/pendapatan') ? 'pendapatan' : 'kontrak'
+  const items = navItemsFor(grants, workspace)
+  // Written out rather than imported as `hasWorkspaceChoice` from `@/lib/auth`, for the
+  // same reason `navItemsFor` writes out its own membership test: that module reaches
+  // for the server Supabase client, which a client component cannot bundle.
+  const hasWorkspaceChoice = grants.has('kontrak:view') && grants.has('pendapatan:view')
 
   // showModal() is what moves focus into the drawer and makes the page behind it
   // inert; close() is idempotent, so Escape closing it natively is not a special case.
@@ -49,8 +58,25 @@ export const AppShell = ({
   const isActive = (href: string): boolean =>
     href === '/' ? pathname === '/' : pathname.startsWith(href)
 
+  // Only rendered for a role that actually has two workspaces to switch between —
+  // gated on the same predicate as `landingFor`, so nobody sees a link to a chooser
+  // that would immediately bounce them back to where they started.
+  const workspaceSwitcher = hasWorkspaceChoice ? (
+    <div className="mb-2 border-b border-white/10 pb-2">
+      <Link
+        href="/pilih"
+        onClick={() => setMenuOpen(false)}
+        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+      >
+        <ArrowLeftRight size={17} aria-hidden="true" />
+        <span>Ganti ruang kerja</span>
+      </Link>
+    </div>
+  ) : null
+
   const nav = (
     <nav aria-label="Navigasi utama" className="sidebar-scroll min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
+      {workspaceSwitcher}
       {items.map((item) => {
         const active = isActive(item.href)
         return (
@@ -107,13 +133,7 @@ export const AppShell = ({
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-gradient-to-b from-sidebar-from to-sidebar-to lg:flex">
         <div className="flex items-center gap-2.5 px-4 py-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/15">
-            <Building2 size={18} className="text-white" aria-hidden="true" />
-          </div>
-          <div>
-            <p className="font-extrabold text-white">Gapura Commercial</p>
-            <p className="text-[10px] text-white/60">Contract &amp; Margin Engine</p>
-          </div>
+          <Image src="/logo.png" alt="Gapura" width={144} height={40} priority className="h-8 w-auto brightness-0 invert" />
         </div>
         {nav}
         {identity}
@@ -139,7 +159,7 @@ export const AppShell = ({
       >
         <div className="flex h-full flex-col bg-gradient-to-b from-sidebar-from to-sidebar-to">
           <div className="flex items-center justify-between px-4 py-4">
-            <p className="font-extrabold text-white">Gapura Commercial</p>
+            <Image src="/logo.png" alt="Gapura" width={144} height={40} className="h-7 w-auto brightness-0 invert" />
             <button
               type="button"
               onClick={() => setMenuOpen(false)}
@@ -165,7 +185,7 @@ export const AppShell = ({
           >
             <Menu size={20} aria-hidden="true" />
           </button>
-          <p className="font-extrabold text-primary">Gapura Commercial</p>
+          <Image src="/logo.png" alt="Gapura" width={144} height={40} className="h-7 w-auto" />
         </header>
 
         <main id="konten-utama" className="min-w-0 flex-1 p-4 sm:p-6">

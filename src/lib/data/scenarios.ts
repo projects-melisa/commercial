@@ -17,12 +17,13 @@ export interface ScenarioView extends ScenarioRow {
 
 const SELECT = `
   *,
-  author:profiles!scenarios_author_id_fkey(nama),
-  decider:profiles!scenarios_decided_by_fkey(nama),
+  author:profiles_ringkas!scenarios_author_id_fkey(nama),
+  decider:profiles_ringkas!scenarios_decided_by_fkey(nama),
   contracts!inner(id, business_line, tarif, cost, min_gpm_target, customers!inner(nama))
 `
 
 interface RawScenario extends ScenarioRow {
+  // Attribution reads the name-only view (R-5); full profiles need pengguna:manage.
   author: { nama: string } | null
   decider: { nama: string } | null
   contracts: {

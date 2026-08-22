@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { ArrowDown, ArrowUp, Search } from 'lucide-react'
 
 import { GpmIndicator, GpmVsTarget, RfmBadge, StatusBadge } from '@/components/ui/badges'
+import { DrillRow } from '@/components/ui/drill-down'
+import { Pagination, usePagination } from '@/components/ui/pagination'
 import { EmptyState } from '@/components/ui/states'
 import type { ContractView } from '@/lib/data/contracts'
 import {
@@ -56,6 +58,8 @@ export const ContractTable = ({
         : (a.margin.gpm - b.margin.gpm) * factor,
     )
   }, [contracts, query, status, businessLine, rfm, sortKey, sortDirection])
+
+  const { page, setPage, pageCount, pageItems, total } = usePagination(visible)
 
   const toggleSort = (key: SortKey) => {
     if (key === sortKey) setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
@@ -220,11 +224,12 @@ export const ContractTable = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {visible.map((contract) => (
-                <tr key={contract.id} className="table-row">
+              {pageItems.map((contract) => (
+                <DrillRow key={contract.id} kind="contract" id={contract.id} className="table-row">
                   <td className="px-4 py-3">
                     <Link
                       href={`/kontrak/${contract.id}`}
+                      onClick={(e) => e.stopPropagation()}
                       className="font-semibold text-gray-900 hover:text-primary"
                     >
                       {contract.customerName}
@@ -254,12 +259,13 @@ export const ContractTable = ({
                   <td className="px-4 py-3">
                     <GpmVsTarget margin={contract.margin} />
                   </td>
-                </tr>
+                </DrillRow>
               ))}
             </tbody>
           </table>
         </div>
       )}
+      <Pagination page={page} pageCount={pageCount} onPageChange={setPage} total={total} />
     </div>
   )
 }

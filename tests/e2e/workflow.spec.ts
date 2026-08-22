@@ -13,72 +13,27 @@ const openContract = async (page: import('@playwright/test').Page, customer: str
   await expect(page.getByRole('heading', { name: customer })).toBeVisible()
 }
 
-test.describe('editing a contract', () => {
-  test('a Commercial user edits a contract in their own line', async ({ page }) => {
-    await signIn(page, PERSONAS.commercial.email)
-    await openContract(page, 'Telko Solusindo')
-
-    await clickWhenReady(page, 'Ubah Kontrak', async () => {
-      await expect(page.getByLabel('Tarif (Rp)')).toBeVisible()
-    })
-    await page.getByLabel('Tarif (Rp)').fill('80000000')
-    await page.getByRole('button', { name: 'Simpan Perubahan' }).click()
-
-    await expect(page.getByText('Perubahan tersimpan.')).toBeVisible()
-    await page.reload()
-    await expect(page.getByText('Rp 80.000.000')).toBeVisible()
-  })
-
-  test('an edit that would breach the contract´s own target warns before saving', async ({
-    page,
-  }) => {
-    await signIn(page, PERSONAS.commercial.email)
-    await openContract(page, 'Solusi Parkir Bandara')
-
-    // Target is 35%; a cost of 30.000.000 against a 35.000.000 tarif gives 14,3%.
-    await clickWhenReady(page, 'Ubah Kontrak', async () => {
-      await expect(page.getByLabel('Cost (Rp)')).toBeVisible()
-    })
-    await page.getByLabel('Cost (Rp)').fill('30000000')
-    await page.getByRole('button', { name: 'Simpan Perubahan' }).click()
-
-    await expect(page.getByText(/di bawah target kontrak ini/)).toBeVisible()
-    await expect(page.getByText('Perubahan tersimpan.')).toHaveCount(0)
-
-    // Acknowledging lets it through deliberately.
-    await page.getByLabel(/Saya memahami margin akan di bawah target/).check()
-    await page.getByRole('button', { name: 'Simpan Perubahan' }).click()
-    await expect(page.getByText('Perubahan tersimpan.')).toBeVisible()
-  })
-
-  test('impossible values are refused before they reach the database', async ({ page }) => {
-    await signIn(page, PERSONAS.commercial.email)
-    await openContract(page, 'Air Papua Charter')
-
-    await clickWhenReady(page, 'Ubah Kontrak', async () => {
-      await expect(page.getByLabel('Cost (Rp)')).toBeVisible()
-    })
-    // Cost above tarif would make the margin negative.
-    await page.getByLabel('Cost (Rp)').fill('99000000')
-    await page.getByRole('button', { name: 'Simpan Perubahan' }).click()
-
-    await expect(page.getByText(/Cost harus lebih kecil dari tarif/)).toBeVisible()
-  })
-})
+/*
+ * "editing a contract" used to live here — three specs driving the edit form. The form
+ * is gone: the Sheet owns contracts and the web is a mirror, so there is no longer any
+ * behaviour to assert. Withdrawn rather than skipped; a skipped spec is a claim that
+ * something is temporarily broken.
+ */
 
 test.describe('the simulator', () => {
   test('moving tarif recomputes margin against this contract´s own target', async ({ page }) => {
     await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
-    await page.getByRole('link', { name: 'Samudera Cold Chain' }).click()
+    await page.getByRole('link', { name: 'Pelita Air' }).click()
     await page.getByRole('link', { name: 'Buka Simulator' }).click()
 
-    // Seeded at 29,1% against a 30% target — the panel opens in the breaching state.
+    // Seeded at 22,5% against a 25% target — the panel opens in the breaching state.
     await expect(page.getByRole('heading', { name: 'Di bawah target margin' })).toBeVisible()
     await expect(page.getByText('Tarif minimum untuk target')).toBeVisible()
 
-    // Raising the tarif far enough crosses the target and flips the panel.
-    await setSlider(page.getByLabel('Tarif', { exact: true }), 13000)
+    // Raising the tarif far enough (minimum for target is ~16.533.333) crosses the
+    // target and flips the panel.
+    await setSlider(page.getByLabel('Tarif', { exact: true }), 17000000)
     await expect(page.getByRole('heading', { name: 'Memenuhi target margin' })).toBeVisible()
 
     // Reset returns to the contract's real figures.
@@ -89,7 +44,7 @@ test.describe('the simulator', () => {
   test('a written insight accompanies the result', async ({ page }) => {
     await signIn(page, PERSONAS.commercial.email)
     await page.goto('/simulator')
-    await page.getByRole('link', { name: /Garuda Nusantara Airlines/ }).click()
+    await page.getByRole('link', { name: /DPR RI/ }).click()
 
     await expect(page.getByRole('heading', { name: 'Ringkasan untuk Negosiasi' })).toBeVisible()
     await expect(page.getByText(/Pada tarif Rp/)).toBeVisible()
@@ -106,9 +61,10 @@ test.describe('the approval round trip', () => {
     // Commercial authors and submits.
     await signIn(page, PERSONAS.commercial.email)
     await page.goto('/simulator')
-    await page.getByRole('link', { name: /Bali Sunshine Airways/ }).click()
+    await page.getByRole('link', { name: /Super Air Jet/ }).click()
 
-    await setSlider(page.getByLabel('Tarif', { exact: true }), 13000000)
+    // Minimum for target is ~13.866.667, so this comfortably meets it.
+    await setSlider(page.getByLabel('Tarif', { exact: true }), 14000000)
     await page.getByLabel('Nama skenario').fill(scenarioName)
     await page.getByRole('button', { name: 'Simpan Skenario' }).click()
     await expect(page.getByText('Skenario tersimpan sebagai draft.')).toBeVisible()
@@ -143,7 +99,7 @@ test.describe('the approval round trip', () => {
     await expect(page.getByText('Skenario disetujui').first()).toBeVisible()
 
     await page.goto('/simulator')
-    await page.getByRole('link', { name: /Bali Sunshine Airways/ }).click()
+    await page.getByRole('link', { name: /Super Air Jet/ }).click()
     const decided = page.locator('li').filter({ hasText: scenarioName })
     await expect(decided.getByText('Disetujui')).toBeVisible()
     // A decided scenario offers no further action.
@@ -155,7 +111,7 @@ test.describe('the approval round trip', () => {
 
     await signIn(page, PERSONAS.commercial.email)
     await page.goto('/simulator')
-    await page.getByRole('link', { name: /Jasa Kilat Express/ }).click()
+    await page.getByRole('link', { name: /Jogja Flight/ }).click()
 
     await page.getByLabel('Nama skenario').fill(scenarioName)
     await page.getByRole('button', { name: 'Simpan Skenario' }).click()
@@ -281,30 +237,8 @@ test.describe('reminders and notifications', () => {
   })
 })
 
-test.describe('volume and revenue', () => {
-  test('recording a volume turns tarif into revenue, and totals it', async ({ page }) => {
-    await signIn(page, PERSONAS.commercial.email)
-    await page.goto('/kontrak')
-    await page.getByRole('link', { name: 'Samudera Cold Chain' }).click()
-
-    // Before a volume there is no revenue — not a zero, which would understate the
-    // book while looking like a real figure.
-    await expect(page.getByText('Perlu volume')).toBeVisible()
-
-    await page.getByRole('button', { name: 'Ubah Kontrak' }).click()
-    const tarif = Number(await page.getByLabel(/^Tarif/).inputValue())
-    await page.getByLabel(/^Volume/).fill('1000')
-    await page.getByRole('button', { name: 'Simpan Perubahan' }).click()
-    await expect(page.getByText('Perubahan tersimpan.')).toBeVisible()
-
-    await page.reload()
-    // Revenue is tarif × volume, rendered in full Rupiah.
-    const expected = new Intl.NumberFormat('id-ID').format(tarif * 1000)
-    await expect(page.getByText(`Rp ${expected}`).first()).toBeVisible()
-
-    // And the dashboard totals it over the contracts that have one.
-    await page.goto('/')
-    await expect(page.locator('p', { hasText: /^Total Pendapatan$/ })).toBeVisible()
-    await expect(page.getByText(/dari 1 dari 20 kontrak bervolume/)).toBeVisible()
-  })
-})
+/*
+ * "volume and revenue" went the same way. It recorded a volume through the edit form
+ * to turn tarif into revenue; with no form there is no path to set one from the web,
+ * and `contracts.volume` is now only ever written by a seed.
+ */

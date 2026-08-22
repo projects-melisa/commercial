@@ -26,13 +26,20 @@ import {
 } from './client.ts'
 
 /**
- * Counts come from the Google Sheet, which is the source of truth.
- *
- * 12 rows of `Compiled_Contracts` become 15 contract lines, because a row naming
- * several stations is stored as one row per station. 9 customers, 10 cases.
+ * Counts come from the Google Sheet, which is the source of truth — so the ones that
+ * move whenever the workbook is re-seeded are read from the database at runtime rather
+ * than hardcoded to the day this file was written. The seed mirrors the live Sheet,
+ * and the live Sheet has grown since (33 customers today).
  */
 const TOTAL_CONTRACTS = 15
-const TOTAL_CUSTOMERS = 9
+const countInBook = async (
+  table: 'customers' | 'cases',
+): Promise<number> => {
+  const { count } = await serviceClient()
+    .from(table)
+    .select('*', { count: 'exact', head: true })
+  return count ?? 0
+}
 /** Cargo Handling is 7 of the 20 contracts in the source workbook. */
 /** Cargo Handling is 2 of the 15 lines — K-009 at CGK and at SUB — both CUST-001's. */
 const CARGO_CONTRACTS = 2
@@ -129,80 +136,140 @@ describe('a line-scoped Commercial user is still confined by the policy', () => 
 describe('customers and cases follow their contract', () => {
   it('the Commercial user sees every customer, matching their contract scope', async () => {
     const client = await signInAs(ACCOUNTS.commercial.email)
-    const { data, error } = await client.from('customers').select('customer_id')
+    const [book, seen] = await Promise.all([
+      countInBook('customers'),
+      client.from('customers').select('customer_id'),
+    ])
 
-    expect(error).toBeNull()
-    expect(data).toHaveLength(TOTAL_CUSTOMERS)
+    expect(seen.error).toBeNull()
+    expect(seen.data).toHaveLength(book)
   })
 
-  it('a VP sees every customer and all 10 service cases', async () => {
+  it('a VP sees every customer, and no service case at all', async () => {
     const client = await signInAs(ACCOUNTS.vp.email)
-    const [customers, cases] = await Promise.all([
+    const [book, customers, cases] = await Promise.all([
+      countInBook('customers'),
       client.from('customers').select('customer_id'),
       client.from('cases').select('id'),
     ])
 
-    expect(customers.data).toHaveLength(TOTAL_CUSTOMERS)
-    expect(cases.data).toHaveLength(10)
+    expect(customers.data).toHaveLength(book)
+    // Irregularities became OCS-only. This is the deliberate cost recorded as R-01:
+    // the renewal decision can no longer see "this customer has two open cases".
+    expect(cases.data).toEqual([])
   })
 
-  it('a Commercial user sees every service case, across all three lines', async () => {
+  it('a Commercial user sees no service case either', async () => {
     const client = await signInAs(ACCOUNTS.commercial.email)
     const { data, error } = await client.from('cases').select('customer_id')
 
     expect(error).toBeNull()
-    expect(data).toHaveLength(10)
+    expect(data).toEqual([])
+  })
+
+  it('OCS is the one role that sees them, and sees every case there is', async () => {
+    const client = await signInAs(ACCOUNTS.ocs.email)
+    const [book, seen] = await Promise.all([
+      countInBook('cases'),
+      client.from('cases').select('id'),
+    ])
+
+    expect(seen.error).toBeNull()
+    expect(seen.data).toHaveLength(book)
   })
 })
 
-describe('who may write', () => {
-  it('a Commercial user may update any contract', async () => {
-    const client = await signInAs(ACCOUNTS.commercial.email)
-    const { data: target } = await client.from('contracts').select('id, service_type').limit(1)
-    const contract = target![0]!
+describe('nobody writes contracts, customers or cases from the web', () => {
+  /*
+   * The Sheet is the source of truth, so the web is a mirror and not a keyboard. The
+   * predicate this replaced was `caller_may_write()` — literally "not the VP" — which
+   * was correct while there were three roles and silently handed write access to six
+   * more the moment the enum grew. Every role is asserted, not a representative one,
+   * because "representative" is exactly the assumption that failed last time.
+   */
+  const EVERYONE = [
+    ['VP', ACCOUNTS.vp],
+    ['Commercial', ACCOUNTS.commercial],
+    ['Direktur Utama', ACCOUNTS.dirut],
+    ['Finance', ACCOUNTS.finance],
+    ['OP', ACCOUNTS.op],
+    ['OS', ACCOUNTS.os],
+    ['OCS', ACCOUNTS.ocs],
+    ['Super Admin', ACCOUNTS.superAdmin],
+  ] as const
 
-    const { data, error } = await client
+  it.each(EVERYONE)('%s cannot insert a contract', async (_label, account) => {
+    const client = await signInAs(account.email)
+    const { error } = await client.from('contracts').insert({
+      customer_id: 'CUST-001',
+      business_line: 'Ground Handling',
+      contract_end_date: '2027-01-01',
+      tarif: 1000,
+      cost: 500,
+    })
+
+    expect(error).not.toBeNull()
+  })
+
+  it.each(EVERYONE)('%s cannot insert a customer', async (_label, account) => {
+    const client = await signInAs(account.email)
+    const { error } = await client
+      .from('customers')
+      .insert({ customer_id: 'CUST-901', nama: 'Uji Tulis', rfm_status: 'LOW' })
+
+    expect(error).not.toBeNull()
+  })
+
+  it('but may mark one followed up — the one column the Sheet does not own', async () => {
+    const client = await signInAs(ACCOUNTS.commercial.email)
+    const { data: target } = await client.from('contracts').select('id').limit(1)
+    const id = target![0]!.id
+
+    const stamp = new Date().toISOString()
+    const { data: updated, error } = await client
       .from('contracts')
-      .update({ service_type: contract.service_type })
-      .eq('id', contract.id)
+      .update({ followed_up_at: stamp })
+      .eq('id', id)
       .select('id')
 
     expect(error).toBeNull()
-    expect(data).toHaveLength(1)
+    expect(updated).toHaveLength(1)
+
+    await serviceClient().from('contracts').update({ followed_up_at: null }).eq('id', id)
   })
 
-  /*
-   * Deliberately absent here: "a Commercial write aimed at another business line
-   * changes nothing", and "a Commercial user cannot move a contract into another
-   * line". Neither holds for an all-lines Commercial user, which is the point of the
-   * role now. Both properties are asserted above against a line-scoped user, where
-   * they still hold and where they still matter.
-   */
-
-  it('a VP cannot write to contracts at all', async () => {
-    const vp = await signInAs(ACCOUNTS.vp.email)
-    const { data: target } = await vp.from('contracts').select('id, tarif').limit(1)
+  it('and the column grant is what stops that becoming contract editing', async () => {
+    const client = await signInAs(ACCOUNTS.commercial.email)
+    const { data: target } = await client.from('contracts').select('id, tarif').limit(1)
     const contract = target![0]!
 
-    const { data, error } = await vp
+    // Same policy, different column. RLS cannot restrict columns, so the guard is
+    // `grant update (followed_up_at)` — without it the follow-up policy would have
+    // handed back the ability to rewrite tarif and cost.
+    const { error } = await client
       .from('contracts')
       .update({ tarif: 1 })
       .eq('id', contract.id)
       .select('id')
 
-    expect(error).toBeNull()
-    expect(data).toEqual([])
-
-    const { data: after } = await vp.from('contracts').select('tarif').eq('id', contract.id).single()
+    expect(error).not.toBeNull()
+    const { data: after } = await client
+      .from('contracts')
+      .select('tarif')
+      .eq('id', contract.id)
+      .single()
     expect(Number(after!.tarif)).toBe(Number(contract.tarif))
   })
 
-  it('a Commercial user may log a service case and close it', async () => {
-    const client = await signInAs(ACCOUNTS.commercial.email)
+})
+
+describe('irregularities are OCS-only, to write as well as to read', () => {
+  it('OCS may log a case and close it', async () => {
+    const client = await signInAs(ACCOUNTS.ocs.email)
 
     const { data: logged, error } = await client
       .from('cases')
-      .insert({ customer_id: 'CUST-001', description: 'Uji pencatatan kasus', status: 'OPEN' })
+      .insert({ customer_id: 'CUST-001', description: 'Uji pencatatan kasus OCS', status: 'OPEN' })
       .select('id')
       .single()
     expect(error).toBeNull()
@@ -215,60 +282,24 @@ describe('who may write', () => {
     expect(closed![0]!.status).toBe('CLOSED')
 
     // No delete policy: a case that happened happened.
-    const { data: deleted } = await client
-      .from('cases')
-      .delete()
-      .eq('id', logged!.id)
-      .select('id')
+    const { data: deleted } = await client.from('cases').delete().eq('id', logged!.id).select('id')
     expect(deleted ?? []).toEqual([])
 
     await serviceClient().from('cases').delete().eq('id', logged!.id)
   })
 
-  it('a VP may not write to service cases', async () => {
-    const vp = await signInAs(ACCOUNTS.vp.email)
-    const { data: existing } = await vp.from('cases').select('id').limit(1)
-
-    const { error } = await vp
+  it.each([
+    ['Commercial', ACCOUNTS.commercial],
+    ['VP', ACCOUNTS.vp],
+    ['Finance', ACCOUNTS.finance],
+    ['OP', ACCOUNTS.op],
+  ] as const)('%s cannot log one', async (_label, account) => {
+    const client = await signInAs(account.email)
+    const { error } = await client
       .from('cases')
       .insert({ customer_id: 'CUST-001', description: 'x', status: 'OPEN' })
+
     expect(error).not.toBeNull()
-
-    const { data: updated } = await vp
-      .from('cases')
-      .update({ status: 'CLOSED' })
-      .eq('id', existing![0]!.id)
-      .select('id')
-    expect(updated ?? []).toEqual([])
-  })
-
-  it('a Commercial user may create a contract, and a VP may not', async () => {
-    const commercial = await signInAs(ACCOUNTS.commercial.email)
-    const vp = await signInAs(ACCOUNTS.vp.email)
-    const id = 'CUST-901'
-
-    const { error: vpRefused } = await vp
-      .from('customers')
-      .insert({ customer_id: id, nama: 'Uji VP', rfm_status: 'LOW' })
-    expect(vpRefused).not.toBeNull()
-
-    const { error: customerError } = await commercial
-      .from('customers')
-      .insert({ customer_id: id, nama: 'Uji Pembuatan', rfm_status: 'LOW' })
-    expect(customerError).toBeNull()
-
-    const { error: contractError } = await commercial.from('contracts').insert({
-      customer_id: id,
-      business_line: 'Ground Handling',
-      service_type: 'Uji',
-      contract_end_date: '2027-01-01',
-      tarif: 1000,
-      cost: 500,
-      min_gpm_target: 0.25,
-    })
-    expect(contractError).toBeNull()
-
-    await serviceClient().from('customers').delete().eq('customer_id', id)
   })
 })
 

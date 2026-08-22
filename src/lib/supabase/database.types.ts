@@ -34,18 +34,108 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          aksi: string
+          aktor: string | null
+          detail: Json
+          id: string
+          pada: string
+        }
+        Insert: {
+          aksi: string
+          aktor?: string | null
+          detail?: Json
+          id?: string
+          pada?: string
+        }
+        Update: {
+          aksi?: string
+          aktor?: string | null
+          detail?: Json
+          id?: string
+          pada?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_aktor_fkey"
+            columns: ["aktor"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_log_aktor_fkey"
+            columns: ["aktor"]
+            isOneToOne: false
+            referencedRelation: "profiles_ringkas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ancillary_revenues: {
+        Row: {
+          cab: string
+          customer: string
+          group_1_gl: string | null
+          group_2_gl: string | null
+          group_3_gl: string | null
+          id: string
+          periode: string
+          plan_actual: string
+          production: number
+          synced_at: string
+          tahun: number
+          text_pl: string | null
+          total: number
+        }
+        Insert: {
+          cab: string
+          customer: string
+          group_1_gl?: string | null
+          group_2_gl?: string | null
+          group_3_gl?: string | null
+          id?: string
+          periode: string
+          plan_actual: string
+          production?: number
+          synced_at?: string
+          tahun: number
+          text_pl?: string | null
+          total?: number
+        }
+        Update: {
+          cab?: string
+          customer?: string
+          group_1_gl?: string | null
+          group_2_gl?: string | null
+          group_3_gl?: string | null
+          id?: string
+          periode?: string
+          plan_actual?: string
+          production?: number
+          synced_at?: string
+          tahun?: number
+          text_pl?: string | null
+          total?: number
+        }
+        Relationships: []
+      }
       cabang: {
         Row: {
+          hub: string | null
           kode: string
           kota: string
           nama: string
         }
         Insert: {
+          hub?: string | null
           kode: string
           kota: string
           nama: string
         }
         Update: {
+          hub?: string | null
           kode?: string
           kota?: string
           nama?: string
@@ -78,6 +168,65 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["customer_id"]
+          },
+        ]
+      }
+      contract_decisions: {
+        Row: {
+          alasan: string
+          contract_id: string
+          id: string
+          keputusan: string
+          oleh: string
+          pada: string
+          skenario_id: string | null
+        }
+        Insert: {
+          alasan: string
+          contract_id: string
+          id?: string
+          keputusan: string
+          oleh: string
+          pada?: string
+          skenario_id?: string | null
+        }
+        Update: {
+          alasan?: string
+          contract_id?: string
+          id?: string
+          keputusan?: string
+          oleh?: string
+          pada?: string
+          skenario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_decisions_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_decisions_oleh_fkey"
+            columns: ["oleh"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_decisions_oleh_fkey"
+            columns: ["oleh"]
+            isOneToOne: false
+            referencedRelation: "profiles_ringkas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_decisions_skenario_id_fkey"
+            columns: ["skenario_id"]
+            isOneToOne: false
+            referencedRelation: "scenarios"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -176,6 +325,7 @@ export type Database = {
           nama: string
           recency_score: number | null
           rfm_status: Database["public"]["Enums"]["rfm_status"]
+          tipe: Database["public"]["Enums"]["customer_type"] | null
         }
         Insert: {
           customer_id: string
@@ -184,6 +334,7 @@ export type Database = {
           nama: string
           recency_score?: number | null
           rfm_status: Database["public"]["Enums"]["rfm_status"]
+          tipe?: Database["public"]["Enums"]["customer_type"] | null
         }
         Update: {
           customer_id?: string
@@ -192,6 +343,7 @@ export type Database = {
           nama?: string
           recency_score?: number | null
           rfm_status?: Database["public"]["Enums"]["rfm_status"]
+          tipe?: Database["public"]["Enums"]["customer_type"] | null
         }
         Relationships: []
       }
@@ -247,29 +399,93 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "notifications_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_ringkas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      penalties: {
+        Row: {
+          cabang_asal: string | null
+          customer_id: string
+          deskripsi: string
+          dilaporkan_pada: string | null
+          id: string
+          nilai: number | null
+          synced_at: string
+          tahap: string
+          validated_at: string | null
+        }
+        Insert: {
+          cabang_asal?: string | null
+          customer_id: string
+          deskripsi: string
+          dilaporkan_pada?: string | null
+          id?: string
+          nilai?: number | null
+          synced_at?: string
+          tahap?: string
+          validated_at?: string | null
+        }
+        Update: {
+          cabang_asal?: string | null
+          customer_id?: string
+          deskripsi?: string
+          dilaporkan_pada?: string | null
+          id?: string
+          nilai?: number | null
+          synced_at?: string
+          tahap?: string
+          validated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "penalties_cabang_asal_fkey"
+            columns: ["cabang_asal"]
+            isOneToOne: false
+            referencedRelation: "cabang"
+            referencedColumns: ["kode"]
+          },
+          {
+            foreignKeyName: "penalties_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["customer_id"]
+          },
         ]
       }
       profiles: {
         Row: {
+          berlaku_sampai: string | null
           business_line: Database["public"]["Enums"]["business_line"] | null
           cabang: string | null
           created_at: string
+          hub: string | null
           id: string
           nama: string
           role: Database["public"]["Enums"]["user_role"]
         }
         Insert: {
+          berlaku_sampai?: string | null
           business_line?: Database["public"]["Enums"]["business_line"] | null
           cabang?: string | null
           created_at?: string
+          hub?: string | null
           id: string
           nama: string
           role: Database["public"]["Enums"]["user_role"]
         }
         Update: {
+          berlaku_sampai?: string | null
           business_line?: Database["public"]["Enums"]["business_line"] | null
           cabang?: string | null
           created_at?: string
+          hub?: string | null
           id?: string
           nama?: string
           role?: Database["public"]["Enums"]["user_role"]
@@ -282,7 +498,159 @@ export type Database = {
             referencedRelation: "cabang"
             referencedColumns: ["kode"]
           },
+          {
+            foreignKeyName: "profiles_hub_fkey"
+            columns: ["hub"]
+            isOneToOne: false
+            referencedRelation: "cabang"
+            referencedColumns: ["hub"]
+          },
         ]
+      }
+      receivables: {
+        Row: {
+          customer_id: string
+          d0_30: number
+          d121_150: number
+          d151_180: number
+          d181_360: number
+          d31_60: number
+          d360_plus: number
+          d61_90: number
+          d91_120: number
+          status: string
+          synced_at: string
+          total: number
+        }
+        Insert: {
+          customer_id: string
+          d0_30?: number
+          d121_150?: number
+          d151_180?: number
+          d181_360?: number
+          d31_60?: number
+          d360_plus?: number
+          d61_90?: number
+          d91_120?: number
+          status: string
+          synced_at?: string
+          total?: number
+        }
+        Update: {
+          customer_id?: string
+          d0_30?: number
+          d121_150?: number
+          d151_180?: number
+          d181_360?: number
+          d31_60?: number
+          d360_plus?: number
+          d61_90?: number
+          d91_120?: number
+          status?: string
+          synced_at?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receivables_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "customers"
+            referencedColumns: ["customer_id"]
+          },
+        ]
+      }
+      report_links: {
+        Row: {
+          aktif: boolean
+          judul: string
+          modul: Database["public"]["Enums"]["app_module"]
+          url: string
+        }
+        Insert: {
+          aktif?: boolean
+          judul: string
+          modul: Database["public"]["Enums"]["app_module"]
+          url: string
+        }
+        Update: {
+          aktif?: boolean
+          judul?: string
+          modul?: Database["public"]["Enums"]["app_module"]
+          url?: string
+        }
+        Relationships: []
+      }
+      role_delegations: {
+        Row: {
+          dari: string
+          id: string
+          ke: string
+          mulai: string
+          sampai: string | null
+        }
+        Insert: {
+          dari: string
+          id?: string
+          ke: string
+          mulai?: string
+          sampai?: string | null
+        }
+        Update: {
+          dari?: string
+          id?: string
+          ke?: string
+          mulai?: string
+          sampai?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_delegations_dari_fkey"
+            columns: ["dari"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_delegations_dari_fkey"
+            columns: ["dari"]
+            isOneToOne: false
+            referencedRelation: "profiles_ringkas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_delegations_ke_fkey"
+            columns: ["ke"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_delegations_ke_fkey"
+            columns: ["ke"]
+            isOneToOne: false
+            referencedRelation: "profiles_ringkas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_module_grants: {
+        Row: {
+          aksi: Database["public"]["Enums"]["grant_action"]
+          modul: Database["public"]["Enums"]["app_module"]
+          role: Database["public"]["Enums"]["user_role"]
+        }
+        Insert: {
+          aksi: Database["public"]["Enums"]["grant_action"]
+          modul: Database["public"]["Enums"]["app_module"]
+          role: Database["public"]["Enums"]["user_role"]
+        }
+        Update: {
+          aksi?: Database["public"]["Enums"]["grant_action"]
+          modul?: Database["public"]["Enums"]["app_module"]
+          role?: Database["public"]["Enums"]["user_role"]
+        }
+        Relationships: []
       }
       scenarios: {
         Row: {
@@ -336,6 +704,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "scenarios_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_ringkas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "scenarios_contract_id_fkey"
             columns: ["contract_id"]
             isOneToOne: false
@@ -349,6 +724,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "scenarios_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_ringkas"
+            referencedColumns: ["id"]
+          },
         ]
       }
       sheet_syncs: {
@@ -359,6 +741,7 @@ export type Database = {
           rows_written: number
           started_at: string
           status: Database["public"]["Enums"]["sheet_sync_status"]
+          tab: string | null
           trigger: Database["public"]["Enums"]["sheet_sync_trigger"]
         }
         Insert: {
@@ -368,6 +751,7 @@ export type Database = {
           rows_written?: number
           started_at?: string
           status: Database["public"]["Enums"]["sheet_sync_status"]
+          tab?: string | null
           trigger: Database["public"]["Enums"]["sheet_sync_trigger"]
         }
         Update: {
@@ -377,13 +761,28 @@ export type Database = {
           rows_written?: number
           started_at?: string
           status?: Database["public"]["Enums"]["sheet_sync_status"]
+          tab?: string | null
           trigger?: Database["public"]["Enums"]["sheet_sync_trigger"]
         }
         Relationships: []
       }
     }
     Views: {
-      [_ in never]: never
+      profiles_ringkas: {
+        Row: {
+          id: string | null
+          nama: string | null
+        }
+        Insert: {
+          id?: string | null
+          nama?: string | null
+        }
+        Update: {
+          id?: string | null
+          nama?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       caller_business_line: {
@@ -391,8 +790,14 @@ export type Database = {
         Returns: Database["public"]["Enums"]["business_line"]
       }
       caller_cabang: { Args: never; Returns: string }
-      caller_is_vp: { Args: never; Returns: boolean }
-      caller_may_write: { Args: never; Returns: boolean }
+      caller_hub: { Args: never; Returns: string }
+      caller_may: {
+        Args: {
+          a: Database["public"]["Enums"]["grant_action"]
+          m: Database["public"]["Enums"]["app_module"]
+        }
+        Returns: boolean
+      }
       caller_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
@@ -404,7 +809,11 @@ export type Database = {
         Returns: boolean
       }
       invoke_reminder_email: { Args: never; Returns: undefined }
-      invoke_sheets_sync: { Args: never; Returns: undefined }
+      invoke_sheets_pull: { Args: never; Returns: undefined }
+      log_activity: {
+        Args: { aksi: string; detail?: Json }
+        Returns: undefined
+      }
       mark_notification_emailed: {
         Args: { notification_id: string }
         Returns: undefined
@@ -421,14 +830,38 @@ export type Database = {
       }
     }
     Enums: {
+      app_module:
+        | "kontrak"
+        | "crm"
+        | "simulator"
+        | "piutang"
+        | "penalty"
+        | "irregularities"
+        | "pendapatan"
+        | "notifikasi"
+        | "report_links"
+        | "pengguna"
+        | "keputusan"
+        | "audit"
       business_line: "Ground Handling" | "Cargo Handling" | "Ancillary Business"
       case_status: "OPEN" | "CLOSED"
+      customer_type: "agent" | "non_agent"
+      grant_action: "view" | "input" | "approve" | "manage" | "export"
       notification_severity: "critical" | "warning" | "info"
       rfm_status: "HIGH" | "MEDIUM" | "LOW"
       scenario_status: "draft" | "pending" | "approved" | "rejected"
       sheet_sync_status: "ok" | "failed"
       sheet_sync_trigger: "schedule" | "manual"
-      user_role: "vp" | "commercial" | "cabang"
+      user_role:
+        | "vp"
+        | "commercial_kps"
+        | "cabang"
+        | "direktur_utama"
+        | "finance_kps"
+        | "op_kps"
+        | "os_kps"
+        | "ocs_kps"
+        | "super_admin"
     }
     CompositeTypes: {
       reminder_outcome: {
@@ -566,18 +999,44 @@ export const Constants = {
   },
   public: {
     Enums: {
+      app_module: [
+        "kontrak",
+        "crm",
+        "simulator",
+        "piutang",
+        "penalty",
+        "irregularities",
+        "pendapatan",
+        "notifikasi",
+        "report_links",
+        "pengguna",
+        "keputusan",
+        "audit",
+      ],
       business_line: [
         "Ground Handling",
         "Cargo Handling",
         "Ancillary Business",
       ],
       case_status: ["OPEN", "CLOSED"],
+      customer_type: ["agent", "non_agent"],
+      grant_action: ["view", "input", "approve", "manage", "export"],
       notification_severity: ["critical", "warning", "info"],
       rfm_status: ["HIGH", "MEDIUM", "LOW"],
       scenario_status: ["draft", "pending", "approved", "rejected"],
       sheet_sync_status: ["ok", "failed"],
       sheet_sync_trigger: ["schedule", "manual"],
-      user_role: ["vp", "commercial", "cabang"],
+      user_role: [
+        "vp",
+        "commercial_kps",
+        "cabang",
+        "direktur_utama",
+        "finance_kps",
+        "op_kps",
+        "os_kps",
+        "ocs_kps",
+        "super_admin",
+      ],
     },
   },
 } as const

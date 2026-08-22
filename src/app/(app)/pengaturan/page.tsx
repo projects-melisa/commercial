@@ -1,11 +1,116 @@
 import { Settings, ShieldCheck } from 'lucide-react'
 
-import { requireProfile, scopeLabel } from '@/lib/auth'
+import { ReportLinksManager, type ReportLinkRow } from '@/app/(app)/pengaturan/report-links-form'
+import { may, requireCaller, scopeLabel } from '@/lib/auth'
 import { listContracts } from '@/lib/data/contracts'
+import { listReceivables, listReportLinks } from '@/lib/data/domains'
 import { getLastSheetSync } from '@/lib/data/notifications'
 import { formatPercent, REMINDER_MILESTONES, ROLE_LABELS } from '@/lib/domain'
+import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/lib/supabase/database.types'
 
 export const metadata = { title: 'Pengaturan — Gapura Commercial' }
+
+/**
+ * U-10 · every mismatch the code already knows about, on one screen.
+ *
+ * Each of these facts is computed somewhere and shown nowhere — the Sheet's own total
+ * against the sum of its buckets (C-06 lives in the same family), customers the revenue
+ * tab names but CRM has never heard of (CUST-010…013), and pull runs that failed or
+ * never happened. Nothing here fixes anything; a reconciliation page that repaired as
+ * it went would be a second source of truth.
+ */
+const Rekonsiliasi = async () => {
+  const supabase = await createClient()
+
+  const [piutang, pelanggan, pendapatan, syncs] = await Promise.all([
+    listReceivables(),
+    supabase.from('customers').select('customer_id'),
+    supabase.from('ancillary_revenues').select('customer'),
+    supabase.from('sheet_syncs').select('tab, status, finished_at').order('finished_at', { ascending: false }),
+  ])
+
+  const totalVsBucket = piutang.filter((row) => row.total !== row.jumlahBucket)
+
+  const dikenal = new Set((pelanggan.data ?? []).map((row) => row.customer_id))
+  const yatim = [
+    ...new Set(
+      (pendapatan.data ?? [])
+        .map((row) => row.customer)
+        .filter((nama) => !dikenal.has(nama)),
+    ),
+  ]
+
+  const terakhir = new Map<string, { tab: string | null; status: string; finished_at: string }>()
+  for (const row of syncs.data ?? []) {
+    if (!terakhir.has(row.tab ?? '')) terakhir.set(row.tab ?? '', row)
+  }
+  const gagal = [...terakhir.entries()].filter(([, v]) => v.status !== 'ok' && v.tab !== '')
+
+  return (
+    <section className="rounded-xl border border-gray-200 bg-white p-5">
+      <h2 className="mb-1 text-sm font-bold text-gray-900">Rekonsiliasi Sheet ↔ Web</h2>
+      <p className="mb-4 text-xs text-gray-500">
+        Ketidakcocokan yang sudah diketahui kode dan kini ditampilkan. Semuanya pulih di
+        Google Sheet — sumber kebenaran — bukan di sini.
+      </p>
+      <ul className="space-y-2 text-sm">
+        <li className="flex flex-wrap items-baseline gap-2">
+          <span className={totalVsBucket.length > 0 ? 'font-semibold text-sem-warn' : 'text-gray-500'}>
+            {totalVsBucket.length === 0
+              ? '✓ Total piutang cocok dengan jumlah bucket di semua baris.'
+              : `${totalVsBucket.length} baris piutang punya kolom Total ≠ jumlah bucket:`}
+          </span>
+          {totalVsBucket.map((row) => (
+            <span key={row.customerId} className="rounded bg-gray-50 px-1.5 py-0.5 text-xs text-gray-600">
+              {row.customerNama} ({row.jumlahBucket} vs {row.total})
+            </span>
+          ))}
+        </li>
+        <li className="flex flex-wrap items-baseline gap-2">
+          <span className={yatim.length > 0 ? 'font-semibold text-sem-warn' : 'text-gray-500'}>
+            {yatim.length === 0
+              ? '✓ Semua pelanggan di Ancillary_Data terdaftar di CRM.'
+              : `Pelanggan yatim — ada di pendapatan, tidak ada di CRM_Data (C-08):`}
+          </span>
+          {yatim.map((nama) => (
+            <span key={nama} className="rounded bg-gray-50 px-1.5 py-0.5 text-xs text-gray-600">
+              {nama}
+            </span>
+          ))}
+        </li>
+        <li className="flex flex-wrap items-baseline gap-2">
+          <span className={gagal.length > 0 ? 'font-semibold text-sem-bad' : 'text-gray-500'}>
+            {gagal.length === 0
+              ? '✓ Tarikan per tab semuanya berhasil pada run terakhir masing-masing.'
+              : `Tarikan terakhir GAGAL untuk ${gagal.length} tab:`}
+          </span>
+          {gagal.map(([tabName, v]) => (
+            <span key={tabName} className="rounded bg-red-50 px-1.5 py-0.5 text-xs text-gray-600">
+              {tabName || '(tanpa tab)'} ·{' '}
+              {new Intl.DateTimeFormat('id-ID', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Jakarta' }).format(new Date(v.finished_at))}
+            </span>
+          ))}
+        </li>
+      </ul>
+    </section>
+  )
+}
+
+type AppModule = Database['public']['Enums']['app_module']
+
+// Every module a Power BI report could plausibly exist for. `pengguna` and
+// `report_links` manage access, not report content, so neither gets a row here.
+const REPORT_MODULES: readonly { modul: AppModule; label: string }[] = [
+  { modul: 'kontrak', label: 'Kontrak' },
+  { modul: 'crm', label: 'Pelanggan' },
+  { modul: 'simulator', label: 'Simulator P&L' },
+  { modul: 'pendapatan', label: 'Pendapatan' },
+  { modul: 'piutang', label: 'Piutang' },
+  { modul: 'penalty', label: 'Penalty' },
+  { modul: 'irregularities', label: 'Irregularities' },
+  { modul: 'notifikasi', label: 'Notifikasi' },
+]
 
 const BANDS = [
   { band: 'Nonaktif', rule: 'Sudah melewati tanggal berakhir' },
@@ -15,9 +120,11 @@ const BANDS = [
 ]
 
 export default async function PengaturanPage() {
-  const profile = await requireProfile()
+  const { profile, grants } = await requireCaller()
   const contracts = await listContracts()
   const lastSync = await getLastSheetSync()
+  const canManageLinks = may(grants, 'report_links', 'manage')
+  const existingLinks = canManageLinks ? await listReportLinks() : []
 
   // The most recent change to any contract the caller can see — how current the
   // figures on screen actually are.
@@ -165,10 +272,10 @@ export default async function PengaturanPage() {
           disimpan pada kolom <code>source_end_date</code>.
         </p>
         <div className="mt-3 rounded-lg border border-gray-200 px-3 py-2.5">
-          <p className="text-xs font-semibold text-gray-700">Cermin Google Sheets</p>
+          <p className="text-xs font-semibold text-gray-700">Tarikan Google Sheets</p>
           {lastSync === null ? (
             <p className="mt-0.5 text-xs text-gray-500">
-              Belum pernah disinkronkan. Sheet mungkin belum mencerminkan data terbaru.
+              Belum pernah ditarik. Angka di layar mungkin belum mencerminkan Sheet terbaru.
             </p>
           ) : (
             <p
@@ -204,6 +311,33 @@ export default async function PengaturanPage() {
           </p>
         ) : null}
       </section>
+
+      {may(grants, 'keputusan', 'input') || may(grants, 'pengguna', 'manage') ? (
+        <Rekonsiliasi />
+      ) : null}
+
+      {canManageLinks ? (
+        <section className="rounded-xl border border-gray-200 bg-white p-5">
+          <h2 className="mb-1 text-sm font-bold text-gray-900">Tautan Eksternal (Power BI)</h2>
+          <p className="mb-4 text-xs text-gray-500">
+            Tombol keluar per modul, bukan iframe tertanam — URL embed membawa tenant
+            Microsoft klien, dan siapa pun di luar tenant itu akan melihat formulir login
+            Microsoft di tengah halaman. Perubahan di sini langsung berlaku untuk semua
+            role yang memegang <code>view</code> pada modul terkait.
+          </p>
+          <ReportLinksManager
+            rows={REPORT_MODULES.map(
+              ({ modul, label }): ReportLinkRow => ({
+                modul,
+                label,
+                judul: existingLinks.find((l) => l.modul === modul)?.judul ?? `Dashboard ${label}`,
+                url: existingLinks.find((l) => l.modul === modul)?.url ?? '',
+                aktif: existingLinks.find((l) => l.modul === modul)?.aktif ?? false,
+              }),
+            )}
+          />
+        </section>
+      ) : null}
     </div>
   )
 }

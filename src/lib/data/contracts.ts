@@ -138,7 +138,20 @@ export const listContracts = async (): Promise<ContractView[]> => {
   )
 }
 
+/**
+ * A URL segment is whatever someone typed, and `contracts.id` is a uuid column.
+ *
+ * Without this guard `/kontrak/baru` reached Postgres as a uuid comparison and came
+ * back `invalid input syntax for type uuid`, which the page turned into a 500 and an
+ * error boundary reading "Gagal memuat data". A route that does not exist is a 404,
+ * not a server fault — and `/kontrak/baru` is exactly the address a bookmark from
+ * before the create form was withdrawn still points at.
+ */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export const getContract = async (id: string): Promise<ContractView | null> => {
+  if (!UUID.test(id)) return null
+
   const supabase = await createClient()
   const today = todayInJakarta()
 

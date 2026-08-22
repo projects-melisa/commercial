@@ -2,11 +2,13 @@ import { Bell } from 'lucide-react'
 
 import { NotificationList } from '@/app/(app)/notifikasi/notification-list'
 import { EmptyState } from '@/components/ui/states'
+import { requireGrant } from '@/lib/auth'
 import { listNotifications } from '@/lib/data/notifications'
 
 export const metadata = { title: 'Notifikasi — Gapura Commercial' }
 
 export default async function NotifikasiPage() {
+  await requireGrant('notifikasi', 'view')
   const notifications = await listNotifications()
   const unread = notifications.filter((n) => !n.read).length
 

@@ -1,215 +1,108 @@
 /**
- * Seam 2 — the station boundary.
+ * Seam 1 — the station boundary, as it now stands.
  *
- * A GM Cabang holds Commercial's authority over one airport's contracts and no
- * visibility of anyone else's. Both halves are asserted here, because either one
- * failing alone would be invisible from the browser: too much visible looks like a
- * larger portfolio, too little looks like an empty branch.
+ * A GM Cabang used to hold Commercial's authority over one airport's contracts. Under
+ * the nine-role model they hold none: their whole grant is `pendapatan`, `notifikasi`
+ * and `report_links`, and the boundary they demonstrate is on `ancillary_revenues`,
+ * the one table that carries a real station column.
  *
- * This is the boundary a judge can log in and see, which the line-scoped case no
- * longer is — the seeded GM Cabang is confined to CGK and the other fourteen
- * contracts never reach the session.
+ * Both halves are asserted, because either failing alone is invisible from the
+ * browser. Too much visible looks like a bigger branch; too little looks like a quiet
+ * month. Only a row count against a known figure tells them apart.
  */
 import { describe, expect, it } from 'vitest'
 
-import {
-  ACCOUNTS,
-  CONTRACTS_AT_SCOPED_CABANG,
-  CONTRACTS_AT_SCOPED_CABANG_ONLY,
-  SCOPED_CABANG,
-  signInAs,
-} from './client.ts'
+import { ACCOUNTS, SCOPED_CABANG, signInAs } from './client.ts'
 
-/**
- * A contract the GM Cabang must not be able to reach, found as someone who can.
- *
- * Deliberately not "any contract at another station": Garuda Indonesia holds lines at
- * both CGK and SUB, so picking the SUB one and then asserting its *customer* is
- * invisible would be asserting something false. The customer has to be one with no
- * line the GM can see at all — no CGK line and no "All Station" line — which makes
- * the invisibility assertions below mean what they say, whatever order the rows
- * happen to come back in.
- */
-const contractElsewhere = async () => {
-  const commercial = await signInAs(ACCOUNTS.commercial.email)
-  const { data } = await commercial.from('contracts').select('id, tarif, cabang, customer_id')
-
-  const reachable = new Set(
-    data!.filter((c) => c.cabang === null || c.cabang === SCOPED_CABANG).map((c) => c.customer_id),
-  )
-  const exclusive = data!.find((c) => c.cabang !== null && !reachable.has(c.customer_id))
-  if (!exclusive) {
-    throw new Error(
-      `no customer is confined to stations other than ${SCOPED_CABANG}; this fixture cannot assert invisibility`,
-    )
-  }
-  return exclusive
-}
-
-describe('a GM Cabang sees their own station and nothing else', () => {
-  it(`reads the ${CONTRACTS_AT_SCOPED_CABANG} contract lines that reach ${SCOPED_CABANG}`, async () => {
+describe('a GM Cabang reads their own station and nothing else', () => {
+  it(`sees only ${SCOPED_CABANG} rows in ancillary_revenues`, async () => {
     const client = await signInAs(ACCOUNTS.cabang.email)
-    const { data, error } = await client.from('contracts').select('id, cabang')
+    const { data, error } = await client.from('ancillary_revenues').select('cab')
 
     expect(error).toBeNull()
-    expect(data).toHaveLength(CONTRACTS_AT_SCOPED_CABANG)
-    // Their own station, plus the Sheet's "All Station" work — and nothing else.
-    expect(new Set(data!.map((row) => row.cabang))).toEqual(new Set([SCOPED_CABANG, null]))
+    expect(data!.length).toBeGreaterThan(0)
+    expect(new Set(data!.map((row) => row.cab))).toEqual(new Set([SCOPED_CABANG]))
   })
 
-  it('sees "All Station" contracts, which belong to every airport', async () => {
-    const client = await signInAs(ACCOUNTS.cabang.email)
-    const { data } = await client.from('contracts').select('id, cabang')
+  it('sees strictly fewer revenue rows than a portfolio-wide reader', async () => {
+    const [cabang, dirut] = await Promise.all([
+      signInAs(ACCOUNTS.cabang.email),
+      signInAs(ACCOUNTS.dirut.email),
+    ])
 
-    const atOwnStation = data!.filter((row) => row.cabang === SCOPED_CABANG)
-    const allStation = data!.filter((row) => row.cabang === null)
+    // `head` with an exact count: the row bodies are irrelevant and the book is well
+    // past PostgREST's 1000-row default, which would silently cap a plain select and
+    // make two different scopes look identical at exactly 1000 apiece.
+    const mine = await cabang.from('ancillary_revenues').select('*', { count: 'exact', head: true })
+    const all = await dirut.from('ancillary_revenues').select('*', { count: 'exact', head: true })
 
-    expect(atOwnStation).toHaveLength(CONTRACTS_AT_SCOPED_CABANG_ONLY)
-    // The point of the assertion: a null station is work at every airport, so hiding
-    // it from the branch GM would be the exact inverse of what the Sheet says.
-    expect(allStation.length).toBeGreaterThan(0)
+    expect(mine.count!).toBeGreaterThan(0)
+    expect(mine.count!).toBeLessThan(all.count!)
   })
 
   it('carries no business-line confinement — every line at that station is theirs', async () => {
     const client = await signInAs(ACCOUNTS.cabang.email)
-    const { data } = await client.from('contracts').select('business_line')
+    const { data } = await client.from('ancillary_revenues').select('group_1_gl')
 
-    // The station spans all three lines in the seed, which is what makes this an
-    // assertion about the station rather than an accident of a one-line branch.
-    expect(new Set(data!.map((row) => row.business_line))).toEqual(
-      new Set(['Ground Handling', 'Cargo Handling', 'Ancillary Business']),
-    )
-  })
-
-  it('cannot read a contract at another station, even asked for by id', async () => {
-    const elsewhere = await contractElsewhere()
-    const client = await signInAs(ACCOUNTS.cabang.email)
-
-    const { data, error } = await client
-      .from('contracts')
-      .select('id, tarif')
-      .eq('id', elsewhere.id)
-
-    expect(error).toBeNull()
-    expect(data).toEqual([])
-  })
-
-  it('sees no customer or case belonging only to another station', async () => {
-    const client = await signInAs(ACCOUNTS.cabang.email)
-    const [customers, cases] = await Promise.all([
-      client.from('customers').select('customer_id'),
-      client.from('cases').select('customer_id'),
-    ])
-
-    // A customer whose only contract line sits at another station is invisible, and
-    // their service cases go with them.
-    const elsewhere = await contractElsewhere()
-    expect(customers.data!.map((row) => row.customer_id)).not.toContain(elsewhere.customer_id)
-    expect(cases.data!.map((row) => row.customer_id)).not.toContain(elsewhere.customer_id)
+    // A station-scoped profile holds a null business line, which the policies read as
+    // "all of them". More than one line coming back is what proves the two axes
+    // compose rather than one silently standing in for the other.
+    expect(new Set(data!.map((row) => row.group_1_gl)).size).toBeGreaterThan(1)
   })
 })
 
-describe('a GM Cabang writes exactly as Commercial does, within that station', () => {
-  it('may update a contract at their own station', async () => {
+describe('a GM Cabang reaches none of the KPS-only tables', () => {
+  it.each([
+    ['contracts'],
+    ['customers'],
+    ['cases'],
+    ['receivables'],
+  ] as const)('%s returns nothing', async (table) => {
     const client = await signInAs(ACCOUNTS.cabang.email)
-    const { data: own } = await client
-      .from('contracts')
-      .select('id, service_type')
-      .eq('cabang', SCOPED_CABANG)
-      .limit(1)
-    const contract = own![0]!
+    const { data, error } = await client.from(table).select('*')
 
-    const { data, error } = await client
-      .from('contracts')
-      .update({ service_type: contract.service_type })
-      .eq('id', contract.id)
-      .select('id')
-
+    // No policy grants them the table, so the answer is an empty set rather than an
+    // error: the rows simply do not exist for that session.
     expect(error).toBeNull()
-    expect(data).toHaveLength(1)
+    expect(data).toEqual([])
   })
+})
 
-  it('changes nothing when writing to a contract at another station', async () => {
-    const elsewhere = await contractElsewhere()
+describe('a GM Cabang writes nothing at all', () => {
+  it('cannot insert a revenue row for their own station', async () => {
     const client = await signInAs(ACCOUNTS.cabang.email)
+    const { error } = await client.from('ancillary_revenues').insert({
+      cab: SCOPED_CABANG,
+      plan_actual: 'Actual',
+      customer: 'Uji Tulis Cabang',
+      periode: '2026-01-01',
+      tahun: 2026,
+      production: 1,
+      total: 1,
+    })
 
-    const { data, error } = await client
-      .from('contracts')
-      .update({ tarif: 1 })
-      .eq('id', elsewhere.id)
-      .select('id')
-
-    expect(error).toBeNull()
-    expect(data ?? []).toEqual([])
-
-    const commercial = await signInAs(ACCOUNTS.commercial.email)
-    const { data: after } = await commercial
-      .from('contracts')
-      .select('tarif')
-      .eq('id', elsewhere.id)
-      .single()
-    expect(Number(after!.tarif)).toBe(Number(elsewhere.tarif))
-  })
-
-  it('cannot move one of their own contracts to another station', async () => {
-    const elsewhere = await contractElsewhere()
-    const client = await signInAs(ACCOUNTS.cabang.email)
-    const { data: own } = await client
-      .from('contracts')
-      .select('id')
-      .eq('cabang', SCOPED_CABANG)
-      .limit(1)
-    const contract = own![0]!
-
-    // The with-check clause is what refuses this: the row would leave the caller's
-    // scope in the same statement that updates it.
-    const { error } = await client
-      .from('contracts')
-      .update({ cabang: elsewhere.cabang })
-      .eq('id', contract.id)
-      .select('id')
-
+    // Revenue is maintained in the Sheet and arrives through the daily pull under the
+    // service role. There is no insert policy for anyone, and that is the point.
     expect(error).not.toBeNull()
+  })
+
+  it('cannot update a revenue row it can see', async () => {
+    const client = await signInAs(ACCOUNTS.cabang.email)
+    const { data: target } = await client.from('ancillary_revenues').select('id, total').limit(1)
+    const row = target![0]!
+
+    const { data: updated } = await client
+      .from('ancillary_revenues')
+      .update({ total: 1 })
+      .eq('id', row.id)
+      .select('id')
+    expect(updated ?? []).toEqual([])
 
     const { data: after } = await client
-      .from('contracts')
-      .select('cabang')
-      .eq('id', contract.id)
+      .from('ancillary_revenues')
+      .select('total')
+      .eq('id', row.id)
       .single()
-    expect(after!.cabang).toBe(SCOPED_CABANG)
-  })
-
-  it('may author and withdraw a scenario on one of their own contracts', async () => {
-    const client = await signInAs(ACCOUNTS.cabang.email)
-    const {
-      data: { user },
-    } = await client.auth.getUser()
-    const { data: own } = await client
-      .from('contracts')
-      .select('id, tarif, cost')
-      .eq('cabang', SCOPED_CABANG)
-      .limit(1)
-    const contract = own![0]!
-
-    const { data: draft, error } = await client
-      .from('scenarios')
-      .insert({
-        contract_id: contract.id,
-        nama: 'Usulan dari cabang',
-        proposed_tarif: Number(contract.tarif),
-        proposed_cost: Number(contract.cost),
-        author_id: user!.id,
-      })
-      .select('id')
-      .single()
-
-    expect(error).toBeNull()
-
-    const { data: removed } = await client
-      .from('scenarios')
-      .delete()
-      .eq('id', draft!.id)
-      .select('id')
-    expect(removed).toHaveLength(1)
+    expect(Number(after!.total)).toBe(Number(row.total))
   })
 })

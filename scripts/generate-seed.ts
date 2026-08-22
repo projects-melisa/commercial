@@ -6,8 +6,9 @@
  * that what was seeded is reviewable in a diff rather than only observable in a
  * database.
  *
- * The Sheet replaced the workbook as the source of truth. `scripts/lib/read-workbook.ts`
- * is left in place for the record but nothing calls it.
+ * Covers every tab the daily pull covers, so a local `supabase db reset` produces the
+ * same shape as a deployment that has been pulling for a week — otherwise the revenue
+ * dashboard and the receivables page are empty locally and only the tests notice.
  *
  * The seed **replaces** rather than appends: it deletes the rows it owns before
  * inserting. That is what makes `pnpm deploy:db --seed` safe to run twice, and it is
@@ -22,7 +23,14 @@ import { fileURLToPath } from 'node:url'
 import { config } from 'dotenv'
 
 import { DEMO_ACCOUNTS } from '../src/lib/demo-accounts.ts'
-import { readSheet } from './lib/read-sheet.ts'
+import {
+  openSheet,
+  readAncillary,
+  readMarginTargets,
+  readPenalties,
+  readReceivables,
+  readSheet,
+} from '../src/lib/sheets/read-sheet.ts'
 
 config({ path: '.env.local', quiet: true })
 
@@ -33,6 +41,11 @@ const nullable = (value: string | null): string => (value === null ? 'null' : qu
 const nullableNumber = (value: number | null): string => (value === null ? 'null' : String(value))
 
 const sheet = await readSheet()
+const values = await openSheet()
+const targets = await readMarginTargets(values)
+const receivables = await readReceivables(values)
+const ancillary = await readAncillary(values)
+const penalties = await readPenalties(values)
 
 // Fail loudly rather than seed a database that misrepresents the source.
 if (sheet.customers.length === 0) throw new Error('CRM_Data produced no customers')
@@ -61,6 +74,9 @@ emit(
   '-- Deleting a contract cascades to its scenarios and notifications, which is what',
   '-- makes re-seeding a clean replacement rather than a merge.',
   '',
+  'delete from public.penalties;',
+  'delete from public.receivables;',
+  'delete from public.ancillary_revenues;',
   'delete from public.cases;',
   'delete from public.contracts;',
   'delete from public.customers;',
@@ -109,14 +125,15 @@ for (const account of DEMO_ACCOUNTS) {
 emit(
   '-- ─── Customers (CRM_Data) ─────────────────────────────────────────────────',
   '',
-  'insert into public.customers (customer_id, nama, rfm_status, frequency_score, monetary_score, recency_score) values',
+  'insert into public.customers (customer_id, nama, rfm_status, frequency_score, monetary_score, recency_score, tipe) values',
 )
 emit(
   sheet.customers
     .map(
       (c, i) =>
         `  (${quote(c.customerId)}, ${quote(c.nama)}, ${quote(c.rfmStatus)}, ` +
-        `${nullableNumber(c.frequencyScore)}, ${nullableNumber(c.monetaryScore)}, ${nullableNumber(c.recencyScore)})` +
+        `${nullableNumber(c.frequencyScore)}, ${nullableNumber(c.monetaryScore)}, ${nullableNumber(c.recencyScore)}, ` +
+        `${nullable(c.tipe)})` +
         (i === sheet.customers.length - 1 ? ';' : ','),
     )
     .join('\n'),
@@ -128,13 +145,12 @@ emit(
   '-- The Sheet writes multi-station work either as one row listing several stations or',
   '-- as several rows priced individually; both arrive here as one row per station.',
   '--',
-  '-- `min_gpm_target` and `service_type` are null throughout: the Sheet has no column',
-  '-- for either, and Revenue_Data still keys on the retired CUST-GH-* ids so it cannot',
-  '-- supply the target. Nulls rather than invented figures.',
+  '-- `service_type` is null throughout: the Sheet has no column for it. `min_gpm_target`',
+  '-- comes from Revenue_Data, joined per CustomerID — the only place a target exists.',
   '',
   'insert into public.contracts (',
   '  id, contract_no, customer_id, cabang, business_line, contract_start_date, contract_end_date,',
-  '  tarif, cost, pic_nama, pic_telepon, pic_email, remarks, latest_contract',
+  '  tarif, cost, min_gpm_target, pic_nama, pic_telepon, pic_email, remarks, latest_contract',
   ') values',
 )
 emit(
@@ -143,6 +159,7 @@ emit(
       (c, i) =>
         `  ('${randomUUID()}', ${quote(c.contractNo)}, ${quote(c.customerId)}, ${nullable(c.cabang)}, ${quote(c.businessLine)},\n` +
         `   ${nullable(c.contractStartDate)}, ${quote(c.contractEndDate)}, ${c.tarif}, ${c.cost},\n` +
+        `   ${nullableNumber(targets.get(c.customerId) ?? null)},\n` +
         `   ${nullable(c.picNama)}, ${nullable(c.picTelepon)}, ${nullable(c.picEmail)}, ${nullable(c.remarks)}, ${nullable(c.latestContract)})` +
         (i === sheet.contracts.length - 1 ? ';' : ','),
     )
@@ -168,6 +185,51 @@ if (sheet.cases.length === 0) {
     '',
   )
 }
+// ─── The tabs the pull owns ────────────────────────────────────────────────
+//
+// Emitted as one multi-row insert per tab. `insert … values` with no rows is a syntax
+// error, so an empty tab emits a comment instead of a truncated statement.
+const block = <T>(judul: string, kolom: string, rows: T[], row: (value: T) => string): void => {
+  emit(`-- ─── ${judul} ──────────────────────────────────────────────`, '')
+  if (rows.length === 0) {
+    emit(`-- No rows; nothing to seed.`, '')
+    return
+  }
+  emit(`insert into ${kolom} values`)
+  emit(rows.map((r, i) => `  ${row(r)}` + (i === rows.length - 1 ? ';' : ',')).join('\n'), '')
+}
+
+block(
+  'Receivables (Receivable_Data)',
+  `public.receivables (
+  customer_id, status, d0_30, d31_60, d61_90, d91_120, d121_150, d151_180, d181_360, d360_plus, total
+)`,
+  receivables,
+  (r) =>
+    `(${quote(r.customerId)}, ${quote(r.status)}, ${r.d0_30}, ${r.d31_60}, ${r.d61_90}, ${r.d91_120}, ` +
+    `${r.d121_150}, ${r.d151_180}, ${r.d181_360}, ${r.d360_plus}, ${r.total})`,
+)
+
+block(
+  'Penalties (Penalty_Data)',
+  'public.penalties (customer_id, deskripsi, nilai, cabang_asal, tahap, dilaporkan_pada)',
+  penalties,
+  (p) =>
+    `(${quote(p.customerId)}, ${quote(p.deskripsi)}, ${nullableNumber(p.nilai)}, ` +
+    `${nullable(p.cabangAsal)}, ${quote(p.tahap)}, ${nullable(p.dilaporkanPada)})`,
+)
+
+block(
+  'Ancillary revenue (Ancillary_Data)',
+  `public.ancillary_revenues (
+  cab, plan_actual, customer, periode, tahun, production, total, text_pl, group_1_gl, group_2_gl, group_3_gl
+)`,
+  ancillary,
+  (a) =>
+    `(${quote(a.cab)}, ${quote(a.planActual)}, ${quote(a.customer)}, ${quote(a.periode)}, ${a.tahun}, ` +
+    `${a.production}, ${a.total}, ${nullable(a.textPl)}, ${nullable(a.group1Gl)}, ${nullable(a.group2Gl)}, ${nullable(a.group3Gl)})`,
+)
+
 emit('commit;', '')
 
 const outputPath = join(repoRoot, 'supabase', 'seed.sql')

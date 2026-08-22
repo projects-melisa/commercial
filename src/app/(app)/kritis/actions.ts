@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { requireGrant } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 
 interface ReminderResult {
@@ -47,12 +48,29 @@ export const sendReminder = async (contractId: string): Promise<string> => {
   return 'Reminder tercatat di pusat notifikasi; pengiriman email belum dikonfigurasi.'
 }
 
-/** Records that this renewal was chased, so the queue stops looking untouched. */
+/**
+ * Records that this renewal was chased, so the queue stops looking untouched.
+ *
+ * `followed_up_at` is the only column of `contracts` an authenticated session may
+ * write, enforced by a column grant rather than by this code — everything else about a
+ * contract belongs to the Sheet. Between withdrawing contract CRUD and adding that
+ * grant, this action wrote nothing at all and said nothing about it: an update with no
+ * matching policy affects zero rows and raises no error.
+ */
 export const markFollowedUp = async (formData: FormData): Promise<void> => {
+  await requireGrant('kontrak', 'view')
+
   const supabase = await createClient()
-  await supabase
+  const { data, error } = await supabase
     .from('contracts')
     .update({ followed_up_at: new Date().toISOString() })
     .eq('id', String(formData.get('contract_id') ?? ''))
+    .select('id')
+
+  // Zero rows means the policy refused it. Log rather than swallow: the button is
+  // about to render as though the follow-up was recorded.
+  if (error || (data ?? []).length === 0) {
+    console.error('[kritis] follow-up not recorded', error?.message ?? 'no rows matched')
+  }
   revalidatePath('/kritis')
 }

@@ -13,6 +13,10 @@ test.describe('on a phone', () => {
   test('navigation is reachable through the drawer', async ({ page }) => {
     await signIn(page, PERSONAS.commercial.email)
 
+    // `/pilih` deliberately renders no sidebar at all, so the drawer only exists once
+    // a workspace has been entered.
+    await page.goto('/')
+
     // The desktop sidebar is hidden; the menu button replaces it.
     const openMenu = page.getByRole('button', { name: 'Buka menu navigasi' })
     await expect(openMenu).toBeVisible()
@@ -36,9 +40,11 @@ test.describe('on a phone', () => {
 
   test('the dashboard stacks without clipping its figures', async ({ page }) => {
     await signIn(page, PERSONAS.commercial.email)
+    // Sign-in lands on the workspace chooser, not the dashboard itself.
+    await page.goto('/')
 
-    await expect(page.getByText('Total Kontrak')).toBeVisible()
-    await expect(page.getByText('Rata-rata GPM')).toBeVisible()
+    await expect(page.getByText('Kontrak Aktif')).toBeVisible()
+    await expect(page.getByText('Sudah Expired')).toBeVisible()
 
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -57,11 +63,15 @@ test.describe('keyboard and screen reader', () => {
     await page.keyboard.type('Gapura2026!')
     await page.keyboard.press('Enter')
 
-    await expect(page).toHaveURL(/\/$/)
+    // The chooser, not the dashboard: sign-in routes by grant now.
+    await expect(page).toHaveURL(/\/pilih/)
   })
 
   test('a skip link takes the keyboard straight to the content', async ({ page }) => {
     await signIn(page, PERSONAS.vp.email)
+    // The chooser at /pilih renders no AppShell and so no skip link; the skip link is
+    // part of AppShell, which only wraps a chosen workspace.
+    await page.goto('/')
 
     await page.keyboard.press('Tab')
     const skip = page.getByRole('link', { name: 'Lewati ke konten utama' })
@@ -82,7 +92,7 @@ test.describe('keyboard and screen reader', () => {
   test('the simulator announces when margin crosses the target', async ({ page }) => {
     await signIn(page, PERSONAS.commercial.email)
     await page.goto('/kontrak')
-    await page.getByRole('link', { name: 'Samudera Cold Chain' }).click()
+    await page.getByRole('link', { name: 'Pelita Air' }).click()
     await page.getByRole('link', { name: 'Buka Simulator' }).click()
 
     const liveRegion = page.locator('[role="status"][aria-live="polite"]').first()

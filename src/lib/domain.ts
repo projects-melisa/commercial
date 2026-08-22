@@ -18,14 +18,54 @@ export type BusinessLine = (typeof BUSINESS_LINES)[number]
 export const RFM_STATUSES = ['HIGH', 'MEDIUM', 'LOW'] as const
 export type RfmStatus = (typeof RFM_STATUSES)[number]
 
+/**
+ * The RFM bands in words, so a table cell reads as a judgement rather than a shout.
+ *
+ * "HIGH" alone says nothing about which direction is good; the phrase does.
+ */
+export const RFM_LABELS: Record<RfmStatus, string> = {
+  HIGH: 'HIGH — bernilai tinggi',
+  MEDIUM: 'MEDIUM — perlu dijaga',
+  LOW: 'LOW — berisiko lepas',
+}
+
 export type CaseStatus = 'OPEN' | 'CLOSED'
-export type UserRole = 'vp' | 'commercial' | 'cabang'
+/**
+ * The nine roles, named as the client's access matrix names them.
+ *
+ * Eight come from that matrix; `super_admin` is the ninth, added because the matrix
+ * has no one who can create a user. It manages who holds which role and reads no
+ * business data at all, which keeps the most widely shared account the least able
+ * to see anything.
+ *
+ * What each role may touch is not decided here. It lives in `role_module_grants` in
+ * the database and is read through `caller_may(module, action)`, so this union names
+ * the roles without also claiming to know their powers.
+ */
+export const USER_ROLES = [
+  'commercial_kps',
+  'vp',
+  'direktur_utama',
+  'cabang',
+  'finance_kps',
+  'op_kps',
+  'os_kps',
+  'ocs_kps',
+  'super_admin',
+] as const
+export type UserRole = (typeof USER_ROLES)[number]
 
 /** How each role is named on screen. */
 export const ROLE_LABELS: Record<UserRole, string> = {
-  vp: 'VP / Dirut DC',
-  commercial: 'Commercial',
+  commercial_kps: 'Commercial KPS',
+  vp: 'VP',
+  direktur_utama: 'Direktur Utama',
   cabang: 'GM Cabang',
+  finance_kps: 'Finance KPS',
+  op_kps: 'OP KPS',
+  os_kps: 'OS KPS',
+  ocs_kps: 'OCS KPS',
+  super_admin: 'Super Admin',
 }
 
 export type ScenarioStatus = 'draft' | 'pending' | 'approved' | 'rejected'
@@ -256,3 +296,25 @@ export const grossProfitTotal = (
 /** Volume in Indonesian convention, with the unit its line is priced in. */
 export const formatVolume = (volume: number, businessLine: BusinessLine): string =>
   `${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(volume)} ${VOLUME_UNITS[businessLine]}`
+
+/**
+ * What a revenue tab is counting.
+ *
+ * Lives here rather than beside the query because the charts are client components and
+ * the query module reaches for the server Supabase client. A formatter passed as a prop
+ * would have been the obvious shortcut, and React refuses it outright — functions do not
+ * cross the server/client boundary. Naming the measure and formatting on both sides from
+ * one function is what keeps an axis tick and a table cell rendering the same figure.
+ */
+export type Measure = 'rupiah' | 'unit' | 'perUnit'
+
+export const formatMeasure = (measure: Measure, value: number): string => {
+  // Units are counts, so no currency and no abbreviation — "1.240" not "Rp 1,2 rb".
+  if (measure === 'unit') {
+    return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Math.round(value))
+  }
+  // A per-unit figure is small enough to state in full, and abbreviating it would
+  // collapse a Rp 4.200 rate to "Rp 0,0 jt".
+  if (measure === 'perUnit') return formatRupiah(value)
+  return formatRupiahCompact(value)
+}
