@@ -144,3 +144,10 @@
 *.stl                filter=lfs diff=lfs merge=lfs -text
 *.nc                 filter=lfs diff=lfs merge=lfs -text
 *.mat                filter=lfs diff=lfs merge=lfs -text
+
+# ---------------------------------------------------------------------------
+# Served as-is by Next.js (public/) — Vercel's build does not pull LFS
+# content, so anything under public/ must stay a normal git blob or it
+# deploys as a text pointer file instead of the real asset.
+# ---------------------------------------------------------------------------
+public/** -filter -diff -merge -text
