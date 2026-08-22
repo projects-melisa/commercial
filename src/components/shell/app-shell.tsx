@@ -50,7 +50,7 @@ export const AppShell = ({
     href === '/' ? pathname === '/' : pathname.startsWith(href)
 
   const nav = (
-    <nav aria-label="Navigasi utama" className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+    <nav aria-label="Navigasi utama" className="sidebar-scroll min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
       {items.map((item) => {
         const active = isActive(item.href)
         return (
@@ -105,7 +105,7 @@ export const AppShell = ({
       </a>
 
       {/* Desktop sidebar */}
-      <aside className="sidebar-scroll hidden w-60 shrink-0 flex-col bg-gradient-to-b from-sidebar-from to-sidebar-to lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-gradient-to-b from-sidebar-from to-sidebar-to lg:flex">
         <div className="flex items-center gap-2.5 px-4 py-5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/15">
             <Building2 size={18} className="text-white" aria-hidden="true" />
